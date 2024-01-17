@@ -19,6 +19,7 @@ library(readxl)
 library(xlsx)
 library(dplyr)
 library(tidyverse)
+library(Hmisc)
 
 ### Spatial
 library(sf)
@@ -118,8 +119,8 @@ ines$TOC <- ines$OM / 1.724
 ### I keep active carbonate because there is data from BASONET on this
 ines$Act_carbonates <- ines$CalizaActiva
 
-### I keep Thickness O horizon with new name
-ines$Thickness_O <- ines$ProfMO
+# ### I keep Thickness O horizon with new name
+# ines$Thickness_O <- ines$ProfMO
 
 ### Indicate dataset
 ines$Dataset <- "INES"
@@ -129,7 +130,7 @@ ines$Dataset <- "INES"
 ines$Date <- 2018
 
 ### Create my ID
-ines$myID <- paste0(ines$Dataset,"_",ines$CodParcela )
+ines$myID <- paste0(ines$Dataset,"_",ines$CodParcela)
 
 ### Subset of columns to merge
 ines_sub <- ines[,c("myID","Dataset","Province","Date",
@@ -577,26 +578,26 @@ summary(Basonet_2021$Na_ppm)
 # "P_HCl_mg-l"
 table(Basonet_2021$`P_HCl_mg-l`) ### I assign NA to those below limit detection and the max value to those >120
 ### Or should I assign 0?
-### I assign 0 to those below detection limit (again, different from previous version)
+### I assign NA to those below detection limit (again, different from previous version)
 Basonet_2021$P_HCl_ppm <- NA
 Basonet_2021[Basonet_2021$`P_HCl_mg-l` == "<4,8",]$`P_HCl_mg-l` <- "<4.8"
 Basonet_2021[Basonet_2021$`P_HCl_mg-l` == ">120",]$`P_HCl_mg-l` <- "120"
 Basonet_2021[Basonet_2021$`P_HCl_mg-l` != "<4.8",]$P_HCl_ppm <-
   as.numeric(Basonet_2021[Basonet_2021$`P_HCl_mg-l` != "<4.8",]$`P_HCl_mg-l`)/
   Basonet_2021[Basonet_2021$`P_HCl_mg-l` != "<4.8",]$Bulk_Density
-Basonet_2021[Basonet_2021$`P_HCl_mg-l` == "<4.8",]$P_HCl_ppm <- 0
+#Basonet_2021[Basonet_2021$`P_HCl_mg-l` == "<4.8",]$P_HCl_ppm <- 0
 summary(Basonet_2021$P_HCl_ppm)
 
 # "P_Olsen_mg-l"
 ### Phosphorus from mg/l to ... again, assign NA to those values below detection limit
-### I assign 0 to those below detection limit (again, different from previous version)
+### I assign NA to those below detection limit (again, different from previous version)
 table(Basonet_2021$`P_Olsen_mg-l`)
 Basonet_2021$P_ppm <- NA
 Basonet_2021[Basonet_2021$`P_Olsen_mg-l` == "<4,8",]$`P_Olsen_mg-l` <- "<4.8"
 Basonet_2021[Basonet_2021$`P_Olsen_mg-l` != "<4.8",]$P_ppm <-
   as.numeric(Basonet_2021[Basonet_2021$`P_Olsen_mg-l` != "<4.8",]$`P_Olsen_mg-l`)/
   Basonet_2021[Basonet_2021$`P_Olsen_mg-l` != "<4.8",]$Bulk_Density
-Basonet_2021[Basonet_2021$`P_Olsen_mg-l` == "<4.8",]$P_ppm <- 0
+#Basonet_2021[Basonet_2021$`P_Olsen_mg-l` == "<4.8",]$P_ppm <- 0
 summary(Basonet_2021$P_ppm)
 
 ### Join texture from year 2001
@@ -1644,9 +1645,9 @@ dim(BASONET_sites[BASONET_sites$Date ==2021,]) ## 430 plots
 dim(BASONET_sites[BASONET_sites$Date ==2001,]) ## 217 plots
 
 ### Write to shapefile
-st_write(obj=BASONET_sites, dsn="BASONET_sites.shp", append=FALSE)
-setwd("C:/Users/mercedes.roman/Desktop/SELVANS/WP1/Soil_data/RMarkdown")
-st_write(obj=BASONET_sites, dsn="BASONET_sites.shp", append=FALSE)
+# st_write(obj=BASONET_sites, dsn="BASONET_sites.shp", append=FALSE)
+# setwd("C:/Users/mercedes.roman/Desktop/SELVANS/WP1/Soil_data/RMarkdown")
+# st_write(obj=BASONET_sites, dsn="BASONET_sites.shp", append=FALSE)
 
 
 # 6.0 Pre-processing - average measurements by horizon layer -------------------
@@ -1689,7 +1690,8 @@ length(unique(soil_datasets$newID)) # 1537
 
 ###  Arrange observations by ID, profle and depth
 ### For each sampling location, e.g., myID
-soil_datasets <- arrange(soil_datasets, Dataset, -Date, newID, Upper_limit, Lower_limit) %>% as.data.frame()
+soil_datasets <- arrange(soil_datasets, Dataset, -Date, newID, Upper_limit, Lower_limit) %>% 
+  as.data.frame()
 view(soil_datasets)
 
 ## how many are individual samples that need to be averaged?
@@ -1753,13 +1755,14 @@ soil_datasets_2 <- rbind(soil_datasets.Single, soil_datasets.Multiple.Ave)
 ### Create index column
 soil_datasets_2$index <- 1:nrow(soil_datasets_2)
 
-## Remember I can change < LOD to NA for P (Basonet)
+## Remember I can change decisions on LOD for different nutrients and cations 
 ggplot(soil_datasets_2, aes(y=TOC, Dataset)) + geom_boxplot()+ geom_jitter(width = 0.3,alpha = 0.2) 
 
 ### TOC
 ### Who are these horizons with TOC > 12%? I use limit from Soil Taxonomy to separate mineral from organic soils
 TOC_organic_index <- soil_datasets_2[soil_datasets_2$TOC > 12 & !is.na(soil_datasets_2$TOC),]$index
 soil_datasets_2[soil_datasets_2$index %in% TOC_organic_index,]$TOC <- NA
+ggplot(soil_datasets_2, aes(y=TOC, Dataset)) + geom_boxplot()+ geom_jitter(width = 0.3,alpha = 0.2)
 
 ### Other properties
 
@@ -1794,7 +1797,7 @@ soil_datasets_2[soil_datasets_2$index %in% TOC_organic_index, ]$C_N <- NA
 # save.image("C:/Users/mercedes.roman/Desktop/SELVANS/WP1/R_output/SoilDatasets/Cleaning_11012023.RData")
 
 ### HERE today 15/01/2024 - correcting EC data in BASONET 2021
-save.image("C:/Users/mercedes.roman/Desktop/SELVANS/WP1/R_output/SoilDatasets/Cleaning_15012023.RData")
+### save.image("C:/Users/mercedes.roman/Desktop/SELVANS/WP1/R_output/SoilDatasets/Cleaning_15012023.RData")
 
 ### TN ppm
 ggplot(soil_datasets_2, aes(y=TN_ppm, Dataset)) + 
@@ -1804,6 +1807,7 @@ soil_datasets_2[soil_datasets_2$TN_ppm > 10000 & !is.na(soil_datasets_2$TN_ppm),
 ### Extractable Phosphorus
 ggplot(soil_datasets_2, aes(y=P_ppm, Dataset)) + 
   geom_boxplot() + geom_jitter(width = 0.3,alpha = 0.2)
+
 ### and cations
 ggplot(soil_datasets_2, aes(y=K_ppm, Dataset)) + 
   geom_boxplot() + geom_jitter(width = 0.3,alpha = 0.2)
@@ -1820,22 +1824,46 @@ soil_datasets_2[soil_datasets_2$Na_ppm > 2500 &
                   !is.na(soil_datasets_2$Na_ppm),]$Na_ppm <- NA
 
 ### CEC
-ggplot(soil_datasets_2, aes(y=CEC, Dataset)) + geom_boxplot() + geom_jitter(width = 0.3,alpha = 0.2)
-ggplot(soil_datasets_2, aes(y=CECef, Dataset)) + geom_boxplot() + geom_jitter(width = 0.3,alpha = 0.2)
+ggplot(soil_datasets_2, aes(y=CEC, Dataset)) + 
+  geom_boxplot() + geom_jitter(width = 0.3,alpha = 0.2)
+ggplot(soil_datasets_2, aes(y=CECef, Dataset)) +
+  geom_boxplot() + geom_jitter(width = 0.3,alpha = 0.2)
 
 ### Coarse fragments
-ggplot(soil_datasets_2, aes(y=CoarseFrag, Dataset)) + geom_boxplot() + geom_jitter(width = 0.3,alpha = 0.2)
-ggplot(soil_datasets_2, aes(y=CoarseFrag_Grav, Dataset)) + geom_boxplot() + geom_jitter(width = 0.3,alpha = 0.2)
+ggplot(soil_datasets_2, aes(y=CoarseFrag, Dataset)) + 
+  geom_boxplot() + geom_jitter(width = 0.3,alpha = 0.2)
+ggplot(soil_datasets_2, aes(y=CoarseFrag_Grav, Dataset)) + 
+  geom_boxplot() + geom_jitter(width = 0.3,alpha = 0.2)
 
 ### Carbonates
-ggplot(soil_datasets_2, aes(y=Carbonates, Dataset)) + geom_boxplot() + geom_jitter(width = 0.3,alpha = 0.2)
+ggplot(soil_datasets_2, aes(y=Carbonates, Dataset)) + 
+  geom_boxplot() + geom_jitter(width = 0.3,alpha = 0.2)
 
 ### Bulk density
-ggplot(soil_datasets_2, aes(y=Bulk_Density, Dataset)) + geom_boxplot() + geom_jitter(width = 0.3,alpha = 0.2)
+ggplot(soil_datasets_2, aes(y=Bulk_Density, Dataset)) + 
+  geom_boxplot() + geom_jitter(width = 0.3,alpha = 0.2)
+
+### HERE today 16/01/2024 - correcting EC data in BASONET 2021
+save.image("C:/Users/mercedes.roman/Desktop/SELVANS/WP1/R_output/SoilDatasets/Cleaning_16012023.RData")
+
+### Continue on tuesday because I don´t know what is going on with the slab function
+load("C:/Users/mercedes.roman/Desktop/SELVANS/WP1/R_output/SoilDatasets/Cleaning_16012023.RData")
+
 
 
 # 7. Standarise to common depth intervals ---------------------------------
 
+colnames(soil_datasets_2)
+
+### Remember columns in the original dataset
+### fixed variables
+# "Dataset"            "myID"               "UTM_X"              "UTM_Y"              
+# "Longitude"          "Latitude"           "Upper_limit"        "Lower_limit"        "Date"
+# "SoilClass_WRB"      "SoilClass_USDA"     "ID_coords"          "newID"
+
+### Keep site information
+# soil_datasets_site <- soil_datasets_2[, c("Dataset","newID","myID","UTM_X","UTM_Y","Longitude","Latitude",
+#                                           "ID_coords","Date","SoilClass_WRB","SoilClass_USDA")]
 ### the minimum dataset is:
 ### Particle size distribution
 ### TOC
@@ -1849,167 +1877,946 @@ ggplot(soil_datasets_2, aes(y=Bulk_Density, Dataset)) + geom_boxplot() + geom_ji
 ### Calcium
 ### Magnesium
 ### Sodium
+### Carbonates
+### CEC
+### CECef
+
+### Variables to do splines on:
+# "Bulk_Density"  "Sand"               "Silt"               "Clay"              
+# "TOC"           "Carbonates"         "pH"                 "EC"                 
+# "TN_ppm"        "P_ppm"              "K_ppm"              "Ca_ppm"            
+# "Mg_ppm"        "Na_ppm"             "C_N"                "CEC"                
+# "CoarseFrag"    "CoarseFrag_Grav"    "CECef"              "TOC_Clay"
+
+dim(soil_datasets_2)
+
+### Eliminate duplicates
+soil_datasets_2 <- soil_datasets_2[!duplicated(soil_datasets_2),]
+
+### Check horizon depths
+hist(soil_datasets_2$Upper_limit)
+sort(unique(soil_datasets_2$Upper_limit))
+hist(soil_datasets_2$Lower_limit)
+sort(unique(soil_datasets_2$Lower_limit))
+
+## coord_ID, h_no
+length(unique(soil_datasets_2$newID))
+length(unique(paste(soil_datasets_2$newID, soil_datasets_2$myLayer)))
+
+### Recalculate myLayer
+soil_datasets_2 <- soil_datasets_2 %>% 
+  group_by(.,newID) %>% 
+  arrange(., newID, Upper_limit, Lower_limit) %>%
+  mutate(., myLayer =  row_number()) %>% as.data.frame()
+
+### For each sampling location, e.g., myID
+soil_datasets_2 <- arrange(soil_datasets_2, newID, myLayer) %>% as.data.frame()
+
+## how many are individual samples that need to be averaged?
+soil_datasets_2.summary.layers <- soil_datasets_2 %>% 
+  group_by(., newID, Upper_limit, Lower_limit) %>%
+  summarise(., N = n())
+
+soil_datasets_2.summary.layers %>% filter(., N >1)
+## None needs to be averaged
+
+### Now I apply splines to standarize depths
+
+### Note: Previously I tried to use the function slab from aqp package.
+### This function had worked well with other versions of aqp and other datasets
+
+### After traying several hours I decided to simply use splines.
+### When testing the mpspline and mpspline_compact functions
+### from the package mpspline2 I also noticed a different problem.
+### If a horizon was 0-20 cm and my layer limits were set to 0-10, 10-20 and 20-40 cm,
+### The value would be also attributed to the layer 20-40 cm (if just for the upper limit).
+### to avoid this, I subtracted 1 cm to the lower limits of all datasets but Carbosol.
+
+# 7.1 Correct depth intervals so I can use the spline function ------------
+
+### Install package with splines
+devtools::install_github("obrl-soil/mpspline2")
+require(mpspline2)
+
+### copy dataset
+soil_datasets_3 <- soil_datasets_2
+
+### Recalculate newID
+soil_datasets_3 <- soil_datasets_3 %>%
+  arrange(., Dataset, desc(Date), myID, ID_coords, Upper_limit, Lower_limit) %>%
+  group_by(., ID_coords,desc(Date)) %>% 
+  mutate(., newID =  cur_group_id())
+length(unique(soil_datasets_3$newID)) # 1537
+
+### LUCAS
+unique(soil_datasets_3[soil_datasets_3$Dataset == "LUCAS",]$Lower_limit)
+soil_datasets_3[soil_datasets_3$Dataset == "LUCAS",]$Lower_limit <- 19
+unique(soil_datasets_3[soil_datasets_3$Dataset == "LUCAS",]$Upper_limit)
+
+### BASONET
+unique(soil_datasets_3[soil_datasets_3$Dataset == "BASONET",]$Lower_limit)
+soil_datasets_3[soil_datasets_3$Dataset == "BASONET" &
+                  soil_datasets_3$Lower_limit == 20,]$Lower_limit <- 19
+soil_datasets_3[soil_datasets_3$Dataset == "BASONET" &
+                  soil_datasets_3$Lower_limit == 40,]$Lower_limit <- 39
+unique(soil_datasets_3[soil_datasets_3$Dataset == "BASONET",]$Upper_limit)
+unique(soil_datasets_3[soil_datasets_3$Dataset == "BASONET",]$Lower_limit)
+
+### INES
+unique(soil_datasets_3[soil_datasets_3$Dataset == "INES",]$Lower_limit)
+soil_datasets_3[soil_datasets_3$Dataset == "INES",]$Lower_limit <- 9
+unique(soil_datasets_3[soil_datasets_3$Dataset == "INES",]$Upper_limit)
 
 
+### Keep site information
+soil_datasets_site <- soil_datasets_3[, c("Dataset","newID","myID","UTM_X","UTM_Y",
+                                          "Longitude","Latitude","ID_coords","Date",
+                                          "SoilClass_WRB","SoilClass_USDA",
+                                          "ParentMaterial_ref","PM_consistency","PM_silica",
+                                          "BD_method","BD_quality")]
+### will merge with "newID"
 
 
-
-
-
-
-
-### Fit mass-preserving splines for the depths...
-plot(tern_SOCfractions.4$lower, tern_SOCfractions.4$upper)
-abline(0,1, col="blue")
-sort(unique(tern_SOCfractions.4$LDepth))
-#  [1]  2  3  5  6  7  8  9 10 11 12 15 16 17 20 22 25 27 28 30
-sort(unique(tern_SOCfractions.4$UDepth))
-# [1]  0  2  3  5  6 10 15 20
-length(unique(tern_SOCfractions.4$coord_ID))
-length(unique(paste(tern_SOCfractions.4$coord_ID, tern_SOCfractions.4$UDepth)))
-
-### How many of these have only one measurement per location?
-## =1 --> aqp
-## >1 --> Splines
-
-### Now, separate those that have one observations per location from those with several per location
-detach("package:aqp", unload=TRUE)
-tern.summary.site <- tern_SOCfractions.4 %>% 
-  group_by(., myID) %>%
-  summarise(., N = n())%>% as.data.frame()
-tern.summary.site %>% filter(., N ==1) %>% as.data.frame()
-
-too.many <- unique(tern.summary.site[tern.summary.site$N > 1,]$myID)
-kkeps <- unique(setdiff(tern.summary.site$myID, too.many))
-length(unique(tern_SOCfractions.4$myID))
-length(too.many) + length(kkeps)
-
-### Split into two dataframes
-tern_SOCfractions.4.aqp <- tern_SOCfractions.4[tern_SOCfractions.4$myID %in% kkeps,]
-tern_SOCfractions.4.spl <- tern_SOCfractions.4[tern_SOCfractions.4$myID %in% too.many,]
-tern_SOCfractions.4.aqp <- as.data.frame(tern_SOCfractions.4.aqp)
-str(tern_SOCfractions.4.aqp)
-summary(tern_SOCfractions.4.aqp$LDepth)
-summary(tern_SOCfractions.4.aqp$UDepth)
-tern_SOCfractions.4.aqp.bck <- tern_SOCfractions.4.aqp
-#tern_SOCfractions.4.aqp <- tern_SOCfractions.4.aqp.bck
-
-library(aqp)
-# upgrade to SoilProfileCollection
-# 'myID' is the name of the column containing the profile ID
-# 'UDepth' is the name of the column containing horizon upper boundaries
-# 'LDepth' is the name of the column containing horizon lower boundaries
-#depths(tern_SOCfractions.4.aqp) <- myID ~ UDepth + LDepth
-#print(tern_SOCfractions.4.aqp)
-#checkSPC(tern_SOCfractions.4.aqp)
-#spc_in_sync(tern_SOCfractions.4.aqp)
-#checkHzDepthLogic(tern_SOCfractions.4.aqp)
-
-### change of support according to GSM depths
-### https://ncss-tech.github.io/AQP/aqp/aqp-intro.html#14_Aggregating_Soil_Profile_Collections_Along_Regular_%E2%80%9CSlabs%E2%80%9D
-
-### Doing all at the same time
-gsm.depths <- c(0, 5, 15, 30)
-desired.properties <- c("POC_p","ROC_p","HOC_p","Vp")
-forms <- list(paste("myID ~ POC_p"), paste("myID ~ ROC_p"),paste("myID ~ HOC_p"), paste("myID ~ Vp")) 
-
-### Remember columns in the original dataset
-# [1]  "mylabs"         "state_c"        "nir_lab"        "zone"           "easting"        "northing"       "matchedbarcode" "upper"          "lower"         
-# [10] "type"           "pH"             "ec"             "longitude"      "latitude"       "OC"             "POC"            "HOC"            "ROC"           
-# [19] "Lat_WGS84"      "Long_WGS84"     "coord_ID"       "UDepth"         "LDepth"         "HOC.st"         "POC.st"         "ROC.st"         "myLayer"       
-# [28] "myID"           "TOC"            "SumFracOC.st"
-
-## Let's keep "myID" "Lat_WGS84" "Long_WGS84" "coord_ID"  
-out.aqp <- list()
-for(j in 1:length(desired.properties)) {
+### Apply splines
+standarize.depths <- function(data.frame, 
+                              target_var, 
+                              target_depths = c(0, 10, 20, 40, 60, 100),
+                              lam_var,
+                              vlow_var,
+                              vhigh_var # = max(data.frame[,target_var], na.rm=TRUE)
+                              ){
   
-  ### Eliminate NA for each property
-  nona.idx <- !is.na(tern_SOCfractions.4.aqp[,desired.properties[[j]]])
-  tern_SOCfractions.4.aqp.j <- tern_SOCfractions.4.aqp[nona.idx,]
-  tern_SOCfractions.4.aqp.j <- tern_SOCfractions.4.aqp.j[, c("myID","Lat_WGS84","Long_WGS84","coord_ID","UDepth","LDepth","POC_p","ROC_p","HOC_p","Vp")]
-  tern_SOCfractions.4.aqp.j.bck <- tern_SOCfractions.4.aqp.j
-  depths(tern_SOCfractions.4.aqp.j) <- myID ~ UDepth + LDepth
+  if(!is.data.frame(data.frame)){
+    print("Error, input is not a dataframe")
+  }
   
-  # print(tern_SOCfractions.4.aqp.j)
-  # checkSPC(tern_SOCfractions.4.aqp.j)
-  # spc_in_sync(tern_SOCfractions.4.aqp.j)
-  # checkHzDepthLogic(tern_SOCfractions.4.aqp.j)
+  ### Because each property has different number of observations per site 
+  ### I will perform this one by one
+  ### Select data for target property
+  nona.idx <- !is.na(data.frame[,target_var])
+  data.frame.j <- data.frame[nona.idx,]
   
-  ### For one property
-  tern.gsm.j <- aqp::slab(tern_SOCfractions.4.aqp.j, fm= as.formula(forms[[j]]), slab.structure = gsm.depths, slab.fun = mean, na.rm=TRUE)
-  head(tern.gsm.j)
-  #ids <- aqp::profile_id(tern_SOCfractions.4.aqp.j)
+  ### subset minimum information for the splines
+  data.frame.j <- data.frame.j[,c("newID","Upper_limit","Lower_limit",target_var)]
+  data.frame.j <- data.frame.j[complete.cases(data.frame.j),]
   
-  ### when contribution is less than 25% I set it to NA, only when another layer in that location already has the value assigned
-  # tern.gsm.j.rev <- tern.gsm.j[0,]
+  ### Apply spline
+  require(mpspline2)
+  eaFit <- mpspline2::mpspline_compact(obj=data.frame.j, 
+                                       var_name = target_var, 
+                                       d = target_depths, 
+                                       lam = lam_var, 
+                                       vlow = vlow_var, 
+                                       vhigh = vhigh_var)
+  #target_vhigh =max(data.frame.j[,target_var])
   
-  # for(i in 1:length(ids)){
-  #   
-  #   df.i <- tern.gsm.j[tern.gsm.j$myID ==ids[[i]], ]
-  #   N.profile <- sum(!is.na(df.i$value))
-  #   
-  #   if(N.profile ==1){
-  #     df.i$value <- ifelse(is.nan(df.i$value), NA, df.i$value)
-  #     tern.gsm.j.rev <- rbind(tern.gsm.j.rev,df.i)
-  #   }
-  #   
-  #   if(N.profile > 1 & any(df.i$contributing_fraction >= 0.25)){
-  #     df.i$value <- ifelse(df.i$contributing_fraction < 0.25, NA, df.i$value)
-  #     tern.gsm.j.rev <- rbind(tern.gsm.j.rev,df.i)
-  #   } else {
-  #     max.contrib <- max(df.i$contributing_fraction)
-  #     df.i$value <- ifelse(df.i$contributing_fraction < max.contrib, NA, df.i$value)
-  #     tern.gsm.j.rev <- rbind(tern.gsm.j.rev,df.i)
-  #   }
-  # }
-  tern.gsm.j$value <- ifelse(is.nan(tern.gsm.j$value), NA, tern.gsm.j$value)
-  # reshape to wide format
-  tern.gsm.j$GMS_layer <- paste0(tern.gsm.j$top,"-",tern.gsm.j$bottom, " cm")
-  tern.gsm.j.wide <- dcast(tern.gsm.j, myID + variable ~ GMS_layer , value.var = 'value', fun.aggregate=mean)
-  ## Add some columns
-  tern.gsm.j.wide <- merge(tern.gsm.j.wide, 
-                           tern_SOCfractions.4.aqp.bck[, c("myID","coord_ID","Lat_WGS84","Long_WGS84")],
-                           by="myID", all.x=TRUE)
-  out.aqp[[j]] <- tern.gsm.j.wide
+  ### Did the output eaFit includes a correct matrix for $est_dcm? 
+  if(nrow(eaFit$est_dcm) > 1 & is.matrix(eaFit$est_dcm)) {
+    print("Output from mspline_compact is a matrix with more than one row")
+  } else {
+    print("revise output from mspline_compact")
+  }
+  
+    ### Extract the dataframe with splined values
+  splined_df <-  as.data.frame(eaFit$est_dcm)
+  
+  ### Add rowname as newID
+  splined_df <-  tibble::rownames_to_column(splined_df, var = "newID")
+  
+  ### Select only depth columns that do exist
+  # desired.cols <- c("000_010_cm","010_020_cm","020_040_cm","040_060_cm","060_100_cm")
+  # colnames(splined_df)
+  
+  ### Transform from wide to long
+  splined_df_long <- pivot_longer(splined_df, 
+                                  cols=c("000_010_cm","010_020_cm","020_040_cm","040_060_cm","060_100_cm"),
+                                  cols_vary="fastest",
+                                  names_to="Layer_depth",
+                                  values_to=target_var)
+  #colnames(splined_df_long)
+  
+  ### I don´t need the "depth" column because it will give problems for merging with other variables later
+  #splined_df_long <- splined_df_long[,c(1,3,4)]
+  ### Return dataframe for the target variable
+  return(splined_df_long)
 }
 
-tern.aqp <- out.aqp
+#Variables to do splines on:
+# "Bulk_Density"  "Sand"               "Silt"               "Clay"              
+# "TOC"           "Carbonates"         "pH"                 "EC"                 
+# "TN_ppm"        "P_ppm"              "K_ppm"              "Ca_ppm"            
+# "Mg_ppm"        "Na_ppm"             "C_N"                "CEC"                
+# "CoarseFrag"    "CoarseFrag_Grav"    "CECef"              "TOC_Clay"
 
-rm("tern.gsm.j",  "tern.gsm.j.rev","tern.gsm.j.rev.wide", "tern_SOCfractions.4.aqp.j",
-   "tern_SOCfractions.4.aqp.j.bck", df.i,i,j,nona.idx, max.contrib,N.profile, forms, ids, out.aqp)
+### Apply function one variable at a time
+Bulk_Density.df <- standarize.depths(data.frame = soil_datasets_3, 
+                                     target_var = "Bulk_Density",
+                                     target_depths = c(0, 10, 20, 40, 60, 100),
+                                     lam_var = 0.1, 
+                                     vlow_var = 0,
+                                     vhigh_var = max(soil_datasets_3$Bulk_Density, na.rm=TRUE))
+Bulk_Density.df$newID  <- as.integer(Bulk_Density.df$newID)
 
-### Now perform splines and keep GSM intervals (we should just keep between 0-30 cm)
-colnames(tern_SOCfractions.4.spl)
-tern_SOCfractions.4.spl <- arrange(tern_SOCfractions.4.spl, myID, UDepth, LDepth) %>% as.data.frame()
+Sand.df <- standarize.depths(data.frame = soil_datasets_3,
+                             target_var = "Sand",
+                             lam_var = 0.1, 
+                             vlow_var = 0,
+                             target_depths = c(0, 10, 20, 40, 60, 100),
+                             vhigh_var = 100)
+Sand.df$newID  <- as.integer(Sand.df$newID)
 
-### Unique SiteID
-sampling.profiles <- unique(tern_SOCfractions.4.spl$myID)
-desired.properties <- c("POC_p","ROC_p","HOC_p","Vp")
+Silt.df <- standarize.depths(data.frame = soil_datasets_3, 
+                             target_var = "Silt",
+                             target_depths = c(0, 10, 20, 40, 60, 100),
+                             lam_var = 0.1, 
+                             vlow_var = 0,
+                             vhigh_var = 100)
+Silt.df$newID  <- as.integer(Silt.df$newID)
 
-out.splines <- list()
-for(j in 1:length(desired.properties)) {
-  df.j <- as.data.frame(tern_SOCfractions.4.spl[, c("myID","UDepth","LDepth",desired.properties[[j]])])
-  ### Fit mass-preserving spline for j property
-  eaFit <- ea_spline(obj=df.j, var.name = desired.properties[[j]], d = t(c(0,5,15,30)), lam = 0.1, vlow = 0, show.progress = TRUE)
-  eaFit$obs.preds[,2] <- as.numeric(eaFit$obs.preds[,2])
-  eaFit$obs.preds[,3] <- as.numeric(eaFit$obs.preds[,3])
-  eaFit$obs.preds[,4] <- as.numeric(eaFit$obs.preds[,4])
-  out.splines[[j]] <- eaFit
+Clay.df <- standarize.depths(data.frame = soil_datasets_3, 
+                             target_var = "Clay",
+                             target_depths = c(0, 10, 20, 40, 60, 100),
+                             lam_var = 0.1, 
+                             vlow_var = 0,
+                             vhigh_var = 100)
+Clay.df$newID  <- as.integer(Clay.df$newID)
+
+summary(soil_datasets_3$TOC)
+TOC.df <- standarize.depths(data.frame = soil_datasets_3, 
+                            target_var = "TOC",
+                            target_depths = c(0, 10, 20, 40, 60, 100),
+                            lam_var = 0.1, 
+                            vlow_var = 0,
+                            vhigh_var = 12)
+TOC.df$newID  <- as.integer(TOC.df$newID)
+
+summary(soil_datasets_3$Carbonates)
+### Correct a problem
+soil_datasets_3[soil_datasets_3$myID == "CARBOSOL_6850",]$Carbonates <- c(0,0,13.2,0,0)
+Carbonates.df <- standarize.depths(data.frame = soil_datasets_3, 
+                                   target_var = "Carbonates",
+                                   target_depths = c(0, 10, 20, 40, 60, 100),
+                                   lam_var = 0.1, 
+                                   vlow_var = 0,
+                                   vhigh_var = 100)
+Carbonates.df$newID  <- as.integer(Carbonates.df$newID)
+
+# ids <- unique(soil_datasets_3[!is.na(soil_datasets_3$Carbonates),]$newID)
+# for(i in 1:length(ids)){
+#   print(i)
+#   print(ids[[i]])
+#   standarize.depths(data.frame = soil_datasets_3[!is.na(soil_datasets_3$Carbonates) & soil_datasets_3$newID == ids[[i]],], 
+#                     target_var = "Carbonates",
+#                     target_depths = c(0, 10, 20, 40, 60, 100),
+#                     vhigh_var = 100)
+# }
+# 
+
+summary(soil_datasets_3$pH)
+### Correct a problem
+#soil_datasets_3[!is.na(soil_datasets_3$pH) & soil_datasets_3$newID == 1061,]$pH <- 7 ### Maybe it does not handle well decimals?
+### This observations is giving me problems. Add manually later this observations for the 0-10 cm
+soil_datasets_3[soil_datasets_3$newID == 1061, c("newID","Upper_limit", "Lower_limit","pH")]
+pH.df <- standarize.depths(data.frame = soil_datasets_3[soil_datasets_3$newID != 1061,], 
+                           target_var = "pH",
+                           target_depths = c(0, 10, 20, 40, 60, 100),
+                           lam_var = 0.1, 
+                           vlow_var = 0,
+                           vhigh_var = 14)
+###missing row
+head(pH.df)
+pH.df.missing <- data.frame("newID"=1061,"depth"=24,"Layer_depth"="000_010_cm","pH"=7.1)
+pH.df <- rbind(pH.df,pH.df.missing)
+pH.df$newID  <- as.integer(pH.df$newID)
+
+summary(soil_datasets_3$EC)
+EC.df <- standarize.depths(data.frame = soil_datasets_3, #[soil_datasets_3$newID != 1061,], 
+                           target_var = "EC",
+                           target_depths = c(0, 10, 20, 40, 60, 100),
+                           lam_var = 0.1, 
+                           vlow_var = 0,
+                           vhigh_var = 24)
+EC.df$newID  <- as.integer(EC.df$newID)
+
+summary(soil_datasets_3$TN_ppm)
+TN_ppm.df <- standarize.depths(data.frame = soil_datasets_3, #[soil_datasets_3$newID != 1061,], 
+                           target_var = "TN_ppm",
+                           target_depths = c(0, 10, 20, 40, 60, 100),
+                           lam_var = 0.1, 
+                           vlow_var = 0,
+                           vhigh_var = 21600)
+TN_ppm.df$newID  <- as.integer(TN_ppm.df$newID)
+
+
+summary(soil_datasets_3$P_ppm)
+P_ppm.df <- standarize.depths(data.frame = soil_datasets_3, #[soil_datasets_3$newID != 1061,], 
+                               target_var = "P_ppm",
+                               target_depths = c(0, 10, 20, 40, 60, 100),
+                              lam_var = 0.1, 
+                              vlow_var = 0,
+                               vhigh_var = 250)
+P_ppm.df$newID  <- as.integer(P_ppm.df$newID)
+
+
+### THERE IS A PROBLEM WITH k_PPM
+### Check newID and the order of rows, etc.
+library(mpspline2)
+summary(soil_datasets_3$K_ppm)
+dim(soil_datasets_3[!is.na(soil_datasets_3$K_ppm) & ! is.nan(soil_datasets_3$K_ppm),])
+
+soil_datasets_3[!is.na(soil_datasets_3$K_ppm) & ! is.nan(soil_datasets_3$K_ppm),c("newID","Upper_limit", "Lower_limit","K_ppm")]
+str(soil_datasets_3$K_ppm)
+
+### I will calculate the splines one by one and merge them
+ids <- sort(unique(soil_datasets_3[!is.na(soil_datasets_3$K_ppm) & !is.nan(soil_datasets_3$K_ppm), ]$newID))
+length(ids)
+
+### Fix problematic ids
+#soil_datasets_3[soil_datasets_3$newID==1536,]$K_ppm <- round(soil_datasets_3[soil_datasets_3$newID==1536,]$K_ppm, digits = 1)
+
+### Create empty dataframe
+K_ppm.df <- data.frame("newID"=NA,"depth"=NA,"Layer_depth"=NA,"K_ppm"=NA)
+
+for(i in 1:length(ids)){
+  print(i)
+  print(ids[[i]])
   
+  ### subset minimum information for the splines
+  data.frame.i <- soil_datasets_3[soil_datasets_3$newID == ids[[i]] & !is.na(soil_datasets_3$K_ppm),
+                                  c("newID","Upper_limit","Lower_limit","K_ppm")]
+  data.frame.i <- data.frame.i[complete.cases(data.frame.i),]
+  data.frame.i <- as.data.frame(data.frame.i)
+  print(data.frame.i)
+  
+  depth.i <- max(data.frame.i$Lower_limit)
+  
+  ### Apply spline to this site
+  df.K_ppm.i <- mpspline_one(
+    site = data.frame.i,
+    var_name = "K_ppm",
+    lam = 0.1,
+    d = c(0, 10, 20, 40, 60, 100),
+    vlow = 0,
+    vhigh = max(data.frame.i[,4], na.rm=TRUE))
+  
+  ### Extract the dataframe with splined values
+  splined_df <-  as.data.frame(df.K_ppm.i$est_dcm)
+  
+  ### Add rowname as Depth_layer
+  splined_df <-  tibble::rownames_to_column(splined_df, var = "Layer_depth")
+  
+  ### change colname
+  colnames(splined_df) <- c("Layer_depth", "K_ppm")
+  
+  ### Add column with newID
+  splined_df$newID <- c(rep(ids[[i]], nrow(splined_df)))
+  
+  ### Add depth
+  splined_df$depth <- c(rep(depth.i, nrow(splined_df)))
+  
+  ### Did the output df.K_ppm.i includes a correct matrix for $est_dcm? 
+  if(nrow(splined_df) >= 1) {
+    print("Output from mpspline_one is a matrix with at least one row")
+  } else {
+    print("revise output from mpspline_one")
+  }
+  
+  ### Reorder columns
+  splined_df <- splined_df[,c("newID","depth","Layer_depth","K_ppm")]
+  print(splined_df)
+  ### Attach dataframe for the target variable to the empty one
+  K_ppm.df <- rbind(K_ppm.df, splined_df)
 }
 
-TERN.POC_p <- out.splines[[1]]
-TERN.ROC_p <- out.splines[[2]]
-TERN.HOC_p <- out.splines[[3]]
-TERN.Vp <- out.splines[[4]]
-
-problematicIDs <- setdiff(sampling.profiles, TERN.POC_p$harmonised$id)
-rm(out.splines, desired.properties, sampling.profiles,eaFit, df.j,j, problematicIDs, kkeps, too.many,gsm.depths, j,
-   tern.summary.site, tern_SOCfractions.4.aqp, tern_SOCfractions.4.aqp.bck, tern_SOCfractions.4.spl, tern.gsm.j.wide)
+### It works
+K_ppm.df <- K_ppm.df[!is.na(K_ppm.df$newID),]
+K_ppm.df$newID  <- as.integer(K_ppm.df$newID)
 
 
-# 6.1 Sand, silt, clay ----------------------------------------------------
 
-### Add to 100% ?
+# "Ca_ppm"            
+### I will calculate the splines one by one and merge them
+ids <- sort(unique(soil_datasets_3[!is.na(soil_datasets_3$Ca_ppm) & 
+                                     !is.nan(soil_datasets_3$Ca_ppm) &
+                                     !soil_datasets_3$newID %in% c(1061,1333,1536), ]$newID))
+length(ids)
+summary(soil_datasets_3$Ca_ppm)
 
+### Create empty dataframe
+Ca_ppm.df <- data.frame("newID"=NA,"depth"=NA,"Layer_depth"=NA,"Ca_ppm"=NA)
+
+for(i in 1:length(ids)){
+  print(i)
+  print(ids[[i]])
+  
+  ### subset minimum information for the splines
+  data.frame.i <- soil_datasets_3[soil_datasets_3$newID == ids[[i]] & !is.na(soil_datasets_3$Ca_ppm),
+                                  c("newID","Upper_limit","Lower_limit","Ca_ppm")]
+  data.frame.i <- data.frame.i[complete.cases(data.frame.i),]
+  data.frame.i <- as.data.frame(data.frame.i)
+  print(data.frame.i)
+  
+  depth.i <- max(data.frame.i$Lower_limit)
+  
+  ### Apply spline to this site
+  df.Ca_ppm.i <- mpspline_one(
+    site = data.frame.i,
+    var_name = "Ca_ppm",
+    lam = 0.1,
+    d = c(0, 10, 20, 40, 60, 100),
+    vlow = 0,
+    vhigh =  max(data.frame.i[,4], na.rm=TRUE))
+  
+  ### Extract the dataframe with splined values
+  splined_df <-  as.data.frame(df.Ca_ppm.i$est_dcm)
+  
+  ### Add rowname as Depth_layer
+  splined_df <-  tibble::rownames_to_column(splined_df, var = "Layer_depth")
+  
+  ### change colname
+  colnames(splined_df) <- c("Layer_depth", "Ca_ppm")
+  
+  ### Add column with newID
+  splined_df$newID <- c(rep(ids[[i]], nrow(splined_df)))
+  
+  ### Add depth
+  splined_df$depth <- c(rep(depth.i, nrow(splined_df)))
+  
+  ### Did the output df.Ca_ppm.i includes a correct matrix for $est_dcm? 
+  if(nrow(splined_df) >= 1) {
+    print("Output from mpspline_one is a matrix with at least one row")
+  } else {
+    print("revise output from mpspline_one")
+  }
+  
+  ### Reorder columns
+  splined_df <- splined_df[,c("newID","depth","Layer_depth","Ca_ppm")]
+  print(splined_df)
+  ### Attach dataframe for the target variable to the empty one
+  Ca_ppm.df <- rbind(Ca_ppm.df, splined_df)
+}
+
+### It works
+Ca_ppm.df <- Ca_ppm.df[!is.na(Ca_ppm.df$newID),]
+
+### Problematic site as for pH, etc.
+soil_datasets_3[soil_datasets_3$newID %in% c(1061,1333,1536), c("newID","Upper_limit","Lower_limit","Ca_ppm")]
+
+df.i <- mpspline_one(
+  site = soil_datasets_3[soil_datasets_3$newID == 1536, c("newID","Upper_limit","Lower_limit","Ca_ppm")],
+  var_name = "Ca_ppm",
+  lam = 0.1,
+  d = c(0, 10, 20, 40, 60, 100),
+  vlow = 0,
+  vhigh = max(soil_datasets_3$Ca_ppm, na.rm=TRUE))
+df.i$est_dcm[1:3]
+
+###missing rows. I add some values manually
+head(Ca_ppm.df)
+Ca_ppm.df.missing <- data.frame("newID"=c(1333,1061,1536,1536,1536),
+                                "depth"=c(60,24,40,40,40),
+                                "Layer_depth"=c("000_010_cm","000_010_cm","000_010_cm","010_020_cm","020_040_cm"),
+                                "Ca_ppm"=c(3,3500,df.i$est_dcm[1:3]))
+Ca_ppm.df <- rbind(Ca_ppm.df,Ca_ppm.df.missing)
+Ca_ppm.df$newID  <- as.integer(Ca_ppm.df$newID)
+
+
+# "Mg_ppm" 
+
+### Create empty dataframe
+Mg_ppm.df <- data.frame("newID"=NA,"depth"=NA,"Layer_depth"=NA,"Mg_ppm"=NA)
+
+ids <- sort(unique(soil_datasets_3[!is.na(soil_datasets_3$Mg_ppm) & 
+                                     !is.nan(soil_datasets_3$Mg_ppm) &
+                                     !soil_datasets_3$newID %in% c(1333), ]$newID))
+length(ids)
+
+for(i in 1:length(ids)){
+  print(i)
+  print(ids[[i]])
+  
+  ### subset minimum information for the splines
+  data.frame.i <- soil_datasets_3[soil_datasets_3$newID == ids[[i]] & !is.na(soil_datasets_3$Mg_ppm),
+                                  c("newID","Upper_limit","Lower_limit","Mg_ppm")]
+  data.frame.i <- data.frame.i[complete.cases(data.frame.i),]
+  data.frame.i <- as.data.frame(data.frame.i)
+  print(data.frame.i)
+  
+  depth.i <- max(data.frame.i$Lower_limit)
+  
+  ### Apply spline to this site
+  df.Mg_ppm.i <- mpspline_one(
+    site = data.frame.i,
+    var_name = "Mg_ppm",
+    lam = 0.1,
+    d = c(0, 10, 20, 40, 60, 100),
+    vlow = 0,
+    vhigh =  max(data.frame.i[,4], na.rm=TRUE))
+  
+  ### Extract the dataframe with splined values
+  splined_df <-  as.data.frame(df.Mg_ppm.i$est_dcm)
+  
+  ### Add rowname as Depth_layer
+  splined_df <-  tibble::rownames_to_column(splined_df, var = "Layer_depth")
+  
+  ### change colname
+  colnames(splined_df) <- c("Layer_depth", "Mg_ppm")
+  
+  ### Add column with newID
+  splined_df$newID <- c(rep(ids[[i]], nrow(splined_df)))
+  
+  ### Add depth
+  splined_df$depth <- c(rep(depth.i, nrow(splined_df)))
+  
+  ### Did the output df.Mg_ppm.i includes a correct matrix for $est_dcm? 
+  if(nrow(splined_df) >= 1) {
+    print("Output from mpspline_one is a matrix with at least one row")
+  } else {
+    print("revise output from mpspline_one")
+  }
+  
+  ### Reorder columns
+  splined_df <- splined_df[,c("newID","depth","Layer_depth","Mg_ppm")]
+  print(splined_df)
+  ### Attach dataframe for the target variable to the empty one
+  Mg_ppm.df <- rbind(Mg_ppm.df, splined_df)
+}
+
+### It works
+Mg_ppm.df <- Mg_ppm.df[!is.na(Mg_ppm.df$newID),]
+
+### missing newID
+soil_datasets_3[soil_datasets_3$newID == 1333, c("newID","Upper_limit","Lower_limit","Mg_ppm")]
+
+Mg_ppm.missing <- data.frame("newID"=1333,"depth"=60,"Layer_depth"="000_010_cm","Mg_ppm"=1)
+Mg_ppm.df <- rbind(Mg_ppm.df, Mg_ppm.missing)
+
+
+# "Na_ppm"             
+
+### Create empty dataframe
+Na_ppm.df <- data.frame("newID"=NA,"depth"=NA,"Layer_depth"=NA,"Na_ppm"=NA)
+
+ids <- sort(unique(soil_datasets_3[!is.na(soil_datasets_3$Na_ppm) & 
+                                     !is.nan(soil_datasets_3$Na_ppm), ]$newID))
+length(ids)
+
+for(i in 1:length(ids)){
+  print(i)
+  print(ids[[i]])
+  
+  ### subset minimum information for the splines
+  data.frame.i <- soil_datasets_3[soil_datasets_3$newID == ids[[i]] & !is.na(soil_datasets_3$Na_ppm),
+                                  c("newID","Upper_limit","Lower_limit","Na_ppm")]
+  data.frame.i <- data.frame.i[complete.cases(data.frame.i),]
+  data.frame.i <- as.data.frame(data.frame.i)
+  print(data.frame.i)
+  
+  depth.i <- max(data.frame.i$Lower_limit)
+  
+  ### Apply spline to this site
+  df.Na_ppm.i <- mpspline_one(
+    site = data.frame.i,
+    var_name = "Na_ppm",
+    lam = 0.1,
+    d = c(0, 10, 20, 40, 60, 100),
+    vlow = 0,
+    vhigh =  max(data.frame.i[,4], na.rm=TRUE))
+  
+  ### Extract the dataframe with splined values
+  splined_df <-  as.data.frame(df.Na_ppm.i$est_dcm)
+  
+  ### Add rowname as Depth_layer
+  splined_df <-  tibble::rownames_to_column(splined_df, var = "Layer_depth")
+  
+  ### change colname
+  colnames(splined_df) <- c("Layer_depth", "Na_ppm")
+  
+  ### Add column with newID
+  splined_df$newID <- c(rep(ids[[i]], nrow(splined_df)))
+  
+  ### Add depth
+  splined_df$depth <- c(rep(depth.i, nrow(splined_df)))
+  
+  ### Did the output df.Na_ppm.i includes a correct matrix for $est_dcm? 
+  if(nrow(splined_df) >= 1) {
+    print("Output from mpspline_one is a matrix with at least one row")
+  } else {
+    print("revise output from mpspline_one")
+  }
+  
+  ### Reorder columns
+  splined_df <- splined_df[,c("newID","depth","Layer_depth","Na_ppm")]
+  print(splined_df)
+  ### Attach dataframe for the target variable to the empty one
+  Na_ppm.df <- rbind(Na_ppm.df, splined_df)
+}
+
+### It works
+Na_ppm.df <- Na_ppm.df[!is.na(Na_ppm.df$newID),]
+
+
+# "CEC"                
+summary(soil_datasets_3$CEC)
+boxplot(soil_datasets_3$CEC)
+CEC.df <- standarize.depths(data.frame = soil_datasets_3, #[soil_datasets_3$newID != 1061,], 
+                              target_var = "CEC",
+                              target_depths = c(0, 10, 20, 40, 60, 100),
+                              lam_var = 0.1, 
+                              vlow_var = 0,
+                              vhigh_var = 70)
+str(CEC.df)
+CEC.df$newID <- as.integer(CEC.df$newID)
+
+# "CoarseFrag" 
+summary(soil_datasets_3$CoarseFrag)
+boxplot(soil_datasets_3$CoarseFrag)
+# CoarseFrag.df <- standarize.depths(data.frame = soil_datasets_3, #[soil_datasets_3$newID != 1061,], 
+#                             target_var = "CoarseFrag",
+#                             target_depths = c(0, 10, 20, 40, 60, 100),
+#                             lam_var = 0.1, 
+#                             vlow_var = 0,
+#                             vhigh_var = 100)
+
+
+### Create empty dataframe
+CoarseFrag.df <- data.frame("newID"=NA,"depth"=NA,"Layer_depth"=NA,"CoarseFrag"=NA)
+
+ids <- sort(unique(soil_datasets_3[!is.na(soil_datasets_3$CoarseFrag) & 
+                                     !is.nan(soil_datasets_3$CoarseFrag), ]$newID))
+length(ids)
+
+for(i in 1:length(ids)){
+  print(i)
+  print(ids[[i]])
+  
+  ### subset minimum information for the splines
+  data.frame.i <- soil_datasets_3[soil_datasets_3$newID == ids[[i]] & !is.na(soil_datasets_3$CoarseFrag),
+                                  c("newID","Upper_limit","Lower_limit","CoarseFrag")]
+  data.frame.i <- data.frame.i[complete.cases(data.frame.i),]
+  data.frame.i <- as.data.frame(data.frame.i)
+  print(data.frame.i)
+  
+  depth.i <- max(data.frame.i$Lower_limit)
+  
+  ### Apply spline to this site
+  df.CoarseFrag.i <- mpspline_one(
+    site = data.frame.i,
+    var_name = "CoarseFrag",
+    lam = 0.1,
+    d = c(0, 10, 20, 40, 60, 100),
+    vlow = 0,
+    vhigh = 100)
+  
+  ### Extract the dataframe with splined values
+  splined_df <-  as.data.frame(df.CoarseFrag.i$est_dcm)
+  
+  ### Add rowname as Depth_layer
+  splined_df <-  tibble::rownames_to_column(splined_df, var = "Layer_depth")
+  
+  ### change colname
+  colnames(splined_df) <- c("Layer_depth", "CoarseFrag")
+  
+  ### Add column with newID
+  splined_df$newID <- c(rep(ids[[i]], nrow(splined_df)))
+  
+  ### Add depth
+  splined_df$depth <- c(rep(depth.i, nrow(splined_df)))
+  
+  ### Did the output df.CoarseFrag.i includes a correct matrix for $est_dcm? 
+  if(nrow(splined_df) >= 1) {
+    print("Output from mpspline_one is a matrix with at least one row")
+  } else {
+    print("revise output from mpspline_one")
+  }
+  
+  ### Reorder columns
+  splined_df <- splined_df[,c("newID","depth","Layer_depth","CoarseFrag")]
+  print(splined_df)
+  ### Attach dataframe for the target variable to the empty one
+  CoarseFrag.df <- rbind(CoarseFrag.df, splined_df)
+}
+
+### It works
+CoarseFrag.df <- CoarseFrag.df[!is.na(CoarseFrag.df$newID),]
+str(CoarseFrag.df)
+
+
+# "CoarseFrag_Grav"    
+summary(soil_datasets_3$CoarseFrag_Grav)
+boxplot(soil_datasets_3$CoarseFrag_Grav)
+CoarseFrag_Grav.df <- standarize.depths(data.frame = soil_datasets_3, #[soil_datasets_3$newID != 1061,],
+                            target_var = "CoarseFrag_Grav",
+                            target_depths = c(0, 10, 20, 40, 60, 100),
+                            lam_var = 0.1,
+                            vlow_var = 0,
+                            vhigh_var = 100)
+CoarseFrag_Grav.df$newID <- as.integer(CoarseFrag_Grav.df$newID)
+
+# "CECef"
+summary(soil_datasets_3$CECef)
+boxplot(soil_datasets_3$CECef)
+CECef.df <- standarize.depths(data.frame = soil_datasets_3, #[soil_datasets_3$newID != 1061,],
+                              target_var = "CECef",
+                              target_depths = c(0, 10, 20, 40, 60, 100),
+                              lam_var = 0.1,
+                              vlow_var = 0,
+                              vhigh_var = 94)
+
+
+# 8. Merge dataframes ----------------------------------------------------
+
+ls()
+rm(ids, what.about,TOC_organic_index,target.length,susbtitute.coords.ids,
+   splined_df,SoilAttr_LUCAS2009,soil_datasets_2.summary.layers,
+   "soil_datasets.Multiple.Ave","soil_datasets.Single","soil_datasets.summary.layers",
+   "soil_datasets.Multiple","sel_microdata","BulkDensity_2018_final_2","BulkDensity_2018_long",
+   "sel.columns.basonet2001","sel.columns.basonet2021","sel.columns.carbosol",
+   "sel.columns.ines","sel.columns.lucas","sel_cols","pH.df.missing","pointID_lucas2015",
+   "Basonet_2001_m","Basonet_2021_m",i,"basonet2001_a1","basonet2021_a1","BasonetDens01",
+   "BASONET","Basonet_2001","Basonet_2011","Basonet_2021","basonet_2021_sf", "BASONET_sites",
+   "Basonet_Texture_2001","Basonet_Texture_2001_av","BasonetDensAve","BasonetParcelas2001",
+   "BasonetParcelas2021","Ca_ppm.df.missing","carbosol","carbosol_Eus","carbosol_Eus_df",
+   "carbosol_m","carbosol_sf","coords_carbosol_utm","coords_lucas_utm","coords_lucas2009nR_utm",
+   "correct_UTM_X","correct_UTM_Y","data.frame.i","depth.i",
+   "df.Ca_ppm.i","df.CoarseFrag.i","df.i","df.K_ppm.i","df.Mg_ppm.i","df.Na_ppm.i",
+   "eus_buffer","eus_buffer_WGS84","ines","ines_m","ines_sf","ines_sub",
+   "lucas_20_30","LUCAS_2009_Eus_df","LUCAS_2009_m","lucas_2015_revisited",
+   "LUCAS_2015_sf","LUCAS_2018","LUCAS_2018_Eus","LUCAS_2018_Eus_df",        
+   "LUCAS_2018_m","LUCAS_2018_sf","LUCAS_SOIL_2018","Lucas2009_pointID2015_Eus",
+   "Mg_ppm.missing","microdata_lucas2018",
+   LUCAS_2015,LUCAS_2015_Eus,LUCAS_2015_Eus_df,LUCAS_2015_m,LUCAS_2015_microdata)
+
+### List of dataframes
+CECef.df$newID <- as.integer(CECef.df$newID)
+
+dfs <- list(Sand.df[,c(1,3,4)],Silt.df[,c(1,3,4)],Clay.df[,c(1,3,4)],
+            CEC.df[,c(1,3,4)],CECef.df[,c(1,3,4)],
+            CoarseFrag.df[,c(1,3,4)],CoarseFrag_Grav.df[,c(1,3,4)],
+            Bulk_Density.df[,c(1,3,4)],pH.df[,c(1,3,4)],EC.df[,c(1,3,4)],TOC.df[,c(1,3,4)],
+            Carbonates.df[,c(1,3,4)],TN_ppm.df[,c(1,3,4)],P_ppm.df[,c(1,3,4)],
+            K_ppm.df[,c(1,3,4)],Ca_ppm.df[,c(1,3,4)],Mg_ppm.df[,c(1,3,4)],Na_ppm.df[,c(1,3,4)])
+###
+library(purrr)
+Soil.df.harmonised <- dfs %>% reduce(full_join)
+
+### Eliminate columns where all soil observations are NA
+Soil.df.harmonised <- Soil.df.harmonised[rowSums(is.na(Soil.df.harmonised[, c(3:20)])) < 18,]
+
+### Merge site conditions
+soil_datasets_site <- soil_datasets_site[!duplicated(soil_datasets_site),]
+Soil.df.harmonised <- left_join(Soil.df.harmonised, soil_datasets_site)
+Soil.df.harmonised <- Soil.df.harmonised[!is.na(Soil.df.harmonised$Layer_depth),]
+
+
+
+# ### 9. Plot some values on the map -----------------------------------------
+
+### Spatial --> epsg:25830
+Soil.df.harmonised_sf <- st_as_sf(Soil.df.harmonised, coords = c("UTM_X","UTM_Y"), crs = 25830)
+Soil.df.harmonised_sf <- Soil.df.harmonised_sf[!is.na(Soil.df.harmonised_sf$Layer_depth),]
+
+### SAVE!
+save.image("C:/Users/mercedes.roman/Desktop/SELVANS/WP1/R_output/SoilDatasets/Hamonised_Dataset.RData")
+
+library(sf)
+library(ggplot2)
+library(dplyr)
+
+ggplot(euskadi) +
+  geom_sf() +
+  geom_sf(mapping=aes(color=TOC),
+          data=Soil.df.harmonised_sf, 
+          pch=19, 
+          alpha=0.6) +
+  scale_color_viridis_c(option = "D",direction = -1) +
+  theme(legend.position = "right")+
+  facet_wrap(~ Layer_depth)
+
+ggplot(euskadi) +
+  geom_sf() +
+  geom_sf(mapping=aes(color=Bulk_Density),
+          data=Soil.df.harmonised_sf, 
+          pch=19) +
+  scale_color_viridis_c(option = "D",direction = -1) +
+  theme(legend.position = "right")+
+  facet_wrap(~ Layer_depth)
+
+
+ggplot(euskadi) +
+  geom_sf() +
+  geom_sf(mapping=aes(color=Sand),
+          data=Soil.df.harmonised_sf, 
+          pch=19, 
+          alpha=0.6) +
+  scale_color_viridis_c(option = "A",direction = -1) +
+  theme(legend.position = "right")+
+  facet_wrap(~ Layer_depth)
+
+
+ggplot(euskadi) +
+  geom_sf() +
+  geom_sf(mapping=aes(color=Clay),
+          data=Soil.df.harmonised_sf, 
+          pch=19, 
+          alpha=0.6) +
+  scale_color_viridis_c(option = "A",direction = -1) +
+  theme(legend.position = "right")+
+  facet_wrap(~ Layer_depth)
+
+
+ggplot(euskadi) +
+  geom_sf() +
+  geom_sf(mapping=aes(color=Silt),
+          data=Soil.df.harmonised_sf, 
+          pch=19, 
+          alpha=0.6) +
+  scale_color_viridis_c(option = "A",direction = -1) +
+  theme(legend.position = "right")+
+  facet_wrap(~ Layer_depth)
+
+
+ggplot(euskadi) +
+  geom_sf() +
+  geom_sf(mapping=aes(color=P_ppm),
+          data=Soil.df.harmonised_sf, 
+          pch=19, 
+          alpha=0.6) +
+  scale_color_viridis_c(option = "A",direction = -1) +
+  theme(legend.position = "right")+
+  facet_wrap(~ Layer_depth)
+
+ggplot(euskadi) +
+  geom_sf() +
+  geom_sf(mapping=aes(color=K_ppm),
+          data=Soil.df.harmonised_sf, 
+          pch=19, 
+          alpha=0.6) +
+  scale_color_viridis_c(option = "A",direction = -1) +
+  theme(legend.position = "right")+
+  facet_wrap(~ Layer_depth)
+
+ggplot(euskadi) +
+  geom_sf() +
+  geom_sf(mapping=aes(color=Mg_ppm),
+          data=Soil.df.harmonised_sf, 
+          pch=19, 
+          alpha=0.6) +
+  scale_color_viridis_c(option = "A",direction = -1) +
+  theme(legend.position = "right")+
+  facet_wrap(~ Layer_depth)
+
+### There is a spatial pattern for Ca!!
+ggplot(euskadi) +
+  geom_sf() +
+  geom_sf(mapping=aes(color=Ca_ppm),
+          data=Soil.df.harmonised_sf, 
+          pch=19, 
+          alpha=0.6) +
+  scale_color_viridis_c(option = "A",direction = -1) +
+  theme(legend.position = "right")+
+  facet_wrap(~ Layer_depth)
+
+
+ggplot(euskadi) +
+  geom_sf() +
+  geom_sf(mapping=aes(color=Na_ppm),
+          data=Soil.df.harmonised_sf, 
+          pch=19, 
+          alpha=0.6) +
+  scale_color_viridis_c(option = "A",direction = -1) +
+  theme(legend.position = "right")+
+  facet_wrap(~ Layer_depth)
+
+ggplot(euskadi) +
+  geom_sf() +
+  geom_sf(mapping=aes(color=Carbonates),
+          data=Soil.df.harmonised_sf, 
+          pch=19, 
+          alpha=0.6) +
+  scale_color_viridis_c(option = "A",direction = -1) +
+  theme(legend.position = "right")+
+  facet_wrap(~ Layer_depth)
+
+### Clear spatial pattern for pH
+ggplot(euskadi) +
+  geom_sf() +
+  geom_sf(mapping=aes(color=pH),
+          data=Soil.df.harmonised_sf, 
+          pch=19, 
+          alpha=0.6) +
+  scale_color_viridis_c(option = "C",direction = -1) +
+  theme(legend.position = "right")+
+  facet_wrap(~ Layer_depth)
+
+
+ggplot(euskadi) +
+  geom_sf() +
+  geom_sf(mapping=aes(color=CoarseFrag),
+          data=Soil.df.harmonised_sf[!is.na(Soil.df.harmonised_sf$CoarseFrag),], 
+          pch=19, 
+          alpha=0.6) +
+  scale_color_viridis_c(option = "C",direction = -1) +
+  theme(legend.position = "right")+
+  facet_wrap(~ Layer_depth)
+
+
+ggplot(euskadi) +
+  geom_sf() +
+  geom_sf(mapping=aes(color=CoarseFrag_Grav),
+          data=Soil.df.harmonised_sf[!is.na(Soil.df.harmonised_sf$CoarseFrag_Grav),], 
+          pch=19, 
+          alpha=0.6) +
+  scale_color_viridis_c(option = "C",direction = -1) +
+  theme(legend.position = "right")+
+  facet_wrap(~ Layer_depth)
+
+ggplot(euskadi) +
+  geom_sf() +
+  geom_sf(mapping=aes(color=EC),
+          data=Soil.df.harmonised_sf[!is.na(Soil.df.harmonised_sf$EC),], 
+          pch=19, 
+          alpha=0.6) +
+  scale_color_viridis_c(option = "C",direction = -1) +
+  theme(legend.position = "right")+
+  facet_wrap(~ Layer_depth)
+
+## Some sort of spatial pattern that follows parent material?
+ggplot(euskadi) +
+  geom_sf() +
+  geom_sf(mapping=aes(color=EC),
+          data=Soil.df.harmonised_sf[!is.na(Soil.df.harmonised_sf$EC) &
+                                       Soil.df.harmonised_sf$Dataset == "BASONET",], 
+          pch=19, 
+          alpha=0.6) +
+  scale_color_viridis_c(option = "C",direction = -1) +
+  theme(legend.position = "right")+
+  facet_wrap(~ Layer_depth)
+
+ggplot(euskadi) +
+  geom_sf() +
+  geom_sf(mapping=aes(color=TN_ppm),
+          data=Soil.df.harmonised_sf[!is.na(Soil.df.harmonised_sf$TN_ppm),], 
+          pch=19, 
+          alpha=0.6) +
+  scale_color_viridis_c(option = "C",direction = -1) +
+  theme(legend.position = "right")+
+  facet_wrap(~ Layer_depth)
+
+
+ggplot(euskadi) +
+  geom_sf() +
+  geom_sf(mapping=aes(color=TN_ppm),
+          data=Soil.df.harmonised_sf[!is.na(Soil.df.harmonised_sf$TN_ppm) &
+                                       Soil.df.harmonised_sf$TN_ppm < 10000 &
+                                       Soil.df.harmonised_sf$Dataset == "BASONET",], 
+          pch=19, 
+          alpha=0.6) +
+  scale_color_viridis_c(option = "C",direction = -1) +
+  theme(legend.position = "right")+
+  facet_wrap(~ Layer_depth)
+
+
+### SAVE!
+save.image("C:/Users/mercedes.roman/Desktop/SELVANS/WP1/R_output/SoilDatasets/Hamonised_Dataset.RData")
 
