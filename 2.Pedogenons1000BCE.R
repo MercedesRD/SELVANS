@@ -26,10 +26,13 @@ library(corrplot)
 # Study area ------------------------------------------------------
 
 ### France buffer
-france_buffer_WGS84 <- st_read("C:/Users/mercedes.roman/Desktop/SELVANS/France/Covariates/Administrative/france_bufferWGS84.shp")
+france_buffer_WGS84 <- st_read("D:/FRANCE/Covariates/Administrative/france_bufferWGS84.shp")
 ### Transform to spatvector
 france_v <- vect(france_buffer_WGS84)
 myext <- ext(st_bbox(france_v))
+
+FrBf_WGS84 <- rast("D:/FRANCE/Covariates/Administrative/FrBf_WGS84Mask.tif")
+round(ext(FrBf_WGS84),digits=2)
 
 # 1. Method for variable selection: Climate and relief variables selected from correlation plots. ------------
 
@@ -41,7 +44,7 @@ myext <- ext(st_bbox(france_v))
 ### Climate
 ### Here we select them based on correlation plots (see power point "GenosoilPhenosoilFrance")
 ### Subset of climate variables were: bio1, bio3, bio4, bio8, bio9,bio2 and bio15
-climDir <- "C:/Users/mercedes.roman/Desktop/SELVANS/France/Covariates/Climate/"
+climDir <- "D:/FRANCE/Covariates/Climate/"
 setwd(paste0(climDir,"TimeID_-9/"))
 bioclim <- list.files(pattern="Fr.tif")
 bioclimrast <- terra::rast(paste0(climDir,"TimeID_-9/",bioclim))
@@ -51,12 +54,12 @@ names(BioclimSub) <- c("Bio1", "Bio3", "Bio4", "Bio8","Bio9", "Bio12", "Bio15")
 
 ### Organisms
 ### Vegetation - Forest cover 1000 BCE (~3000 BP)
-setwd("C:/Users/mercedes.roman/Desktop/SELVANS/France/Covariates/vegetation/Zanon/")
+setwd("D:/FRANCE/Covariates/vegetation/Zanon/")
 forest_cover_3000BP <- terra::rast("forest_cover_3000.tif")
 plot(forest_cover_3000BP)
 
 ### HYDE 3.2
-setwd("C:/Users/mercedes.roman/Desktop/SELVANS/France/Covariates/HYDE3.2/h1000BCE")
+setwd("D:/FRANCE/Covariates/HYDE3.2/h1000BCE")
 conv_rangeland1000BCE <- terra::rast("conv_rangeland1000BC_Fr.tif")
 cropland1000BCE <- terra::rast("cropland1000BC_Fr.tif")
 grazing1000BCE <- terra::rast("grazing1000BC_Fr.tif")
@@ -121,7 +124,7 @@ grazing1000BCE <- terra::rast("grazing1000BC_Fr.tif")
 
 # Selected variables:
 # CTI, easterness, HLI, mrrtf, mrvbf, north_slope, northerness, scale_pos, slope,  SRR, srtm 
-ReliefDir <- "C:/Users/mercedes.roman/Desktop/SELVANS/France/Covariates/Relief/"
+ReliefDir <- "D:/FRANCE/Covariates/Relief/"
 setwd(ReliefDir)
 list.files(pattern=".tif")
 relief.covar <- c("cti.tif","easterness.tif","hli.tif","mrrtf.tif",
@@ -187,7 +190,7 @@ for(i in 1:length(raster.names)){
   print(covariates.selection.cont[[i]])
   m <- terra::mask(x=covariates.selection.cont[[i]], mask=mymask) # Mask pixels outside France
   s <- terra::scale(x=m,center=TRUE, scale=TRUE) # Scale because it is a continuous variable
-  setwd("C:/Users/mercedes.roman/Desktop/SELVANS/France/Covariates/scaled/") # change wd
+  setwd("D:/FRANCE/Covariates/scaled/") # change wd
   writeRaster(s, filename = paste0(raster.names[[i]],".tif"),overwrite = TRUE)
   # format = "GTiff",na.rm=T, inf.rm=T, ) # Write to file
   #s # Return scaled raster
@@ -209,17 +212,17 @@ rm(i,s,m,r)
 
 ### Parent material
 ### Until we have the map from BRGM we use the 1:1M parent material map
-mat11 <- rast("C:/Users/mercedes.roman/Desktop/SELVANS/France/Covariates/ParentMaterial/mat11.tif")
+mat11 <- rast("D:/FRANCE/Covariates/ParentMaterial/mat11.tif")
 mat11 <- project(mat11, "EPSG:4326", method="near")
 ### Reclass 0 as NA
 f <- function(x) ifelse(x == 0, NA, x)
 mat11 <- app(mat11, f)
 writeRaster(mat11, filename="C:/Users/mercedes.roman/Desktop/SELVANS/France/Covariates/ParentMaterial/mat11_4326.tif")
-mat11 <- rast("C:/Users/mercedes.roman/Desktop/SELVANS/France/Covariates/ParentMaterial/mat11_4326.tif")
+mat11 <- rast("D:/FRANCE/Covariates/ParentMaterial/mat11_4326.tif")
 
 ### Transform to continuous varible with a PCA
 ### Create dummy variables
-setwd("C:/Users/mercedes.roman/Desktop/SELVANS/France/Covariates/ParentMaterial/")
+setwd("D:/FRANCE/Covariates/ParentMaterial/")
 PM.classes <- sort(unique(values(mat11)))
 dummy.list <- list()
 for(i in 1:length(PM.classes)){
@@ -276,7 +279,7 @@ for (i in 1:nlyr(pca.pred)){
 
 mat11.files <- list.files(pattern="_PC")
 mat11.rast <- rast(mat11.files)
-plot(mat11.rast)
+plot(mat11.rast) ### The first 5 PCs seem to represent well the variability
 
 ### Clean environment
 
@@ -285,7 +288,7 @@ plot(mat11.rast)
 ### Start the script from here for modeling pedogenon classes. Covariates processed already
 
 ### We load scaled continuous variables
-ScaledContDir <- "C:/Users/mercedes.roman/Desktop/SELVANS/France/Covariates/scaled/"
+ScaledContDir <- "D:/FRANCE/Covariates/scaled/"
 setwd(ScaledContDir)
 
 ### My preferred order for covariates
@@ -296,9 +299,11 @@ covariates.sel <- c("Bio1.tif","Bio3.tif","Bio4.tif","Bio8.tif","Bio9.tif","Bio1
 cont.stack <- rast(covariates.sel)
 
 ### Categorical variables
-ParentMatDir <-"C:/Users/mercedes.roman/Desktop/SELVANS/France/Covariates/ParentMaterial/"
+ParentMatDir <-"D:/FRANCE/Covariates/ParentMaterial/"
 setwd(ParentMatDir)
 cat.stack <- rast(list.files(pattern="mat11_PC"))
+### Subset only first 5 PCs
+cat.stack <- subset(cat.stack, c(1:5))
 
 ### Make stack
 covariates.stack <- c(cont.stack,cat.stack);plot(covariates.stack)
@@ -329,7 +334,7 @@ rm(sampleCLORPT)
 # Set the random number generator to reproduce the results
 set.seed(1946)
 # Regular sampling
-sampleCLORPT <- spatSample(covariates.stack, size = 400000 , method="regular", replace=FALSE, as.df=TRUE, xy=TRUE, na.rm = TRUE)
+sampleCLORPT <- spatSample(covariates.stack, size = 350000 , method="regular", replace=FALSE, as.df=TRUE, xy=TRUE, na.rm = TRUE)
 
 ### Returns a dataframe
 # transform to sf
@@ -506,7 +511,7 @@ FR1000BCE.pedogenon <-KMeans_rcpp(data=CLORPT.rs,
 
 ### save the cluster number in the original dataframe
 # CLORPT.df$Cluster.N <- as.factor(FR1000BCE.pedogenon$clusters)
-
+save.image("D:/FRANCE/R_output/pedogenon1000BCE.RData")
 
 # 6. Create pedogenon map ----------------------------------------------------
 
@@ -517,8 +522,7 @@ plot(covariates.stack)
 
 ### Can terra apply a matricial multiplication directly?
 
-tile.df.rs <- covariates.stack %*% solve(C)
-
+#tile.df.rs <- covariates.stack %*% solve(C)
 
 ### Predict the k class with a nested foreach loop 
 
@@ -537,19 +541,33 @@ K <- 31
 #K <- c(6,12)
 ### If K is more than one instead of km.pedogenon.rcpp being a kmeans model, it would be a list of models
 
-system.time(
+#system.time(
   
-  for(m in 1:length(K)){
+  # for(m in 1:length(K)){
     
-    cl <- makeCluster(6)   
-    registerDoParallel(cl)
-    
-    k_rast_list <- foreach(i=1:bs$n, .packages=c("terra", "ClusterR"), .export = c("C", "FR1000BCE.pedogenon")) %dopar% {
-      
+    # cl <- makeCluster(6)   
+    # registerDoParallel(cl)
+    # 
+    # k_rast_list <- foreach(i=1:bs$n, .packages=c("terra", "ClusterR"),
+    #                        .export = c("C", "FR1000BCE.pedogenon")) %dopar% {
+    #   
+k_rast_list <- list()
+
+for(i in 1:bs$n){
+                             
       ### Get one tile of the raster stack
-      tile <- crop(covariates.stack, ext(covariates.stack, bs$row[[i]], bs$row[[i]]+bs$nrows[[i]], 1, ncol(covariates.stack)))
+      # tile <- crop(covariates.stack, 
+      #                ext(covariates.stack, bs$row[[i]], bs$row[[i]]+bs$nrows[[i]], 1, ncol(covariates.stack)))
+      ### Crop with this syntax from https://stackoverflow.com/questions/69965770/subset-a-raster-using-row-column-index-in-terra 
+  if(i < bs$n)  {
+    tile <- covariates.stack[ bs$row[[i]]:(bs$row[[i]]+bs$nrows[[i]]), 1:ncol(covariates.stack), drop=FALSE]
+  }  else {
+    tile <- covariates.stack[ bs$row[[i]]:(bs$row[[i]]+bs$nrows[[i]]-5), 1:ncol(covariates.stack), drop=FALSE]
+  }
+  
+      
       ### Transform into a dataframe
-      tile.df <- as.data.frame(tile, row.names=NULL, optional=FALSE, xy=TRUE, na.rm=FALSE, long=FALSE)
+      tile.df <- as.data.frame(tile, row.names=NULL, optional=FALSE, xy=TRUE, na.rm=FALSE)
       
       ### For each new pixel, I first have to rescale its values
       ## Take out the coordinates
@@ -571,54 +589,25 @@ system.time(
       ### If K is more than one instead of km.pedogenon.rcpp being a kmeans model, it would be a list of models
       ### km.pedogenon.rcpp[[m]]$centroids
       ### predict in those rows where there are not na
-      tile.df.rs[-df.na, ]$cluster  <- predict_KMeans(data = tile.df.rs[-df.na,1:(ncol(tile.df.rs)-1)], CENTROIDS = km.pedogenon.rcpp$centroids)
+      tile.df.rs[-df.na, ]$cluster  <- predict_KMeans(data = tile.df.rs[-df.na,1:(ncol(tile.df.rs)-1)], 
+                                                      CENTROIDS = FR1000BCE.pedogenon$centroids)
       ### Assign the values to a new raster
       k.pred <- setValues(tile[[1]], tile.df.rs$cluster)
-      names(k.pred) <- paste0("K",K[[m]])
-      k.pred # Return this
+      names(k.pred) <- "PdGn1000BCE"
+      k_rast_list[[i]] <- k.pred # Return this
     }
     
-    stopCluster(cl)
+    #stopCluster(cl)
+k_rast_list <- k_rast_list[1:8]
+## Assign function to mosaic
+k_sprc <- sprc(k_rast_list)
+## Create mosaic for whole France
+k.raster <- terra::mosaic(k_sprc, fun="min", overwrite=TRUE, filename="D:/FRANCE/R_output/PdGn1000BCE.tif")
+plot(k.raster)
     
-    ## Assign function to mosaic
-    k_rast_list$na.rm <- TRUE
-    k_rast_list$fun <- min
-    ## Create mosaic for whole NSW
-    k.raster <- do.call(mosaic, k_rast_list)
-    names(k.raster) <- paste0("K",K[[m]])
-    
-    ## Write to file
-    #writeRaster(k.raster, filename= paste0("K",K[[m]],".tif"), na.rm=T,inf.rm=T, format="GTiff", overwrite=TRUE )
-    gc()
-    
-  }
-)
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+## Write to file
+#writeRaster(k.raster, filename= paste0("K",K[[m]],".tif"), na.rm=T,inf.rm=T, format="GTiff", overwrite=TRUE )
+gc()
+  
 
 #### end of this script
