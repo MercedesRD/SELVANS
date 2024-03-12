@@ -230,27 +230,30 @@ timenames <- list(TimeID_20="1901_1909",
 library(foreach)
 library(doParallel)
 
-tic <- Sys.time()
-detectCores()
-cl <- makeCluster(2)   ###
-registerDoParallel(cl)
-getDoParWorkers()
-
-foreach(timeID = 1:length(timeIDs),
-        .packages=c("terra","predicts"),
-        .export = c("get_chelsa_cruts_france","average_chelsa_cruts_france",
-                    "timeIDs","year_intervals","timenames")) %dopar% {
-#timeID = 7
-          # ### Get the DEM template
-          # library(terra)
-          # dem <- rast("D:/FRANCE/Covariates/scaled/srtm.tif")
-          # template.r <- dem
-          # values(template.r) <- NA
+# tic <- Sys.time()
+# detectCores()
+# cl <- makeCluster(2)   ###
+# registerDoParallel(cl)
+# getDoParWorkers()
+# 
+# foreach(timeID = 2:length(timeIDs),
+#         .packages=c("terra","predicts"),
+#         .export = c("get_chelsa_cruts_france","average_chelsa_cruts_france",
+#                     "timeIDs","year_intervals","timenames")) %dopar% {
+          #timeID = 7
+  
+for(timeID in 6:length(timeIDs)) {
+ 
+#for(timeID in 2:5) { 
+print(timeID)
+  
+  timeID=8
+      
           tmpFiles(current=TRUE, orphan=TRUE, old=TRUE, remove=TRUE)
-          timeID = 1          
+          #timeID = 1          
           ### download and crop files
           get_chelsa_cruts_france(climdir = "D:/FRANCE/Covariates/Climate/CHELSAcruts/",
-                                  timeID = timeIDs[[timeID]], 
+                                  timeID = timeIDs[[timeID]],
                                   years = year_intervals[[timeID]],
                                   months = c(1:12),
                                   vars = c("prec","tmax","tmin"))
@@ -278,43 +281,53 @@ foreach(timeID = 1:length(timeIDs),
           
           ### change names
           names(prec_r) <- paste0("prec_",c(1:12),"_",timenames[[timeID]])
+          plot(prec_r) ; prec_r
           names(tmax_r) <- paste0("tmax_",c(1:12),"_",timenames[[timeID]])
           names(tmin_r) <- paste0("tmin_",c(1:12),"_",timenames[[timeID]])
           
           ### Before calculating bioclim variables, pass the temperature to Celsius
           tmax_r <- terra::app(tmax_r,
                                fun=function(x){x/10}, 
-                               filename=paste0("CHELSAcruts_tmax_",c(1:12),"_",timename,"_V.2.1_Fr_u.tif"), 
+                               filename=paste0("CHELSAcruts_tmax_",timenames[[timeID]],"_V.1.0_Fr_u.tif"), 
                                overwrite=TRUE)
+          plot(tmax_r); tmax_r
           
           tmin_r <- terra::app(tmin_r,
                                fun=function(x){x/10}, 
-                               filename=paste0("CHELSAcruts_tmin_",c(1:12),"_",timename,"_V.2.1_Fr_u.tif"), 
+                               filename=paste0("CHELSAcruts_tmin_",timenames[[timeID]],"_V.1.0_Fr_u.tif"), 
                                overwrite=TRUE)
+          plot(tmin_r) ; tmin_r
           
-          
-          
+          tmax_r <- rast(paste0("CHELSAcruts_tmax_",timenames[[timeID]],"_V.1.0_Fr_u.tif"))
+          tmin_r <- rast(paste0("CHELSAcruts_tmin_",timenames[[timeID]],"_V.1.0_Fr_u.tif"))
+         
           ### Calculate bioclimatic variables
           library("predicts")
           bioclim_t <-bcvars(prec=prec_r,
                              tmin=tmin_r, 
                              tmax=tmax_r)
-         writeRaster(bioclim_t,
-                     filename=paste0("bioclim",c(1:19),"_",timenames[[timeID]],".tif"), 
+          
+          plot(bioclim_t); bioclim_t
+          
+          writeRaster(bioclim_t,
+                     filename=paste0("bio",c(1:19),"_",timenames[[timeID]],".tif"), 
                      overwrite=TRUE)
-         
-         file.remove(tmax_files)
-         file.remove(prec_files)
-         file.remove(tmin_files)
+          
+          file.remove(tmax_files)
+          file.remove(prec_files)
+          file.remove(tmin_files)
+          file.remove(paste0("CHELSAcruts_tmax_",timenames[[timeID]],"_V.1.0_Fr_u.tif"))
+          file.remove(paste0("CHELSAcruts_tmin_",timenames[[timeID]],"_V.1.0_Fr_u.tif"))
           
           tmpFiles(current=TRUE, orphan=TRUE, old=TRUE, remove=TRUE)
           
           gc()
+         
 }
 
-stopCluster(cl)
-
-tac <- Sys.time()
-tac-tic
+# stopCluster(cl)
+# 
+# tac <- Sys.time()
+# tac-tic
 
 ### end of this script

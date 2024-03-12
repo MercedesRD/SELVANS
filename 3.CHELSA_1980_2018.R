@@ -27,8 +27,6 @@ plot(FrBf_WGS84)
 ### Explanation: Precipitation amount for each month; "Amount" means mass per unit area. "Precipitation" in the Earth's atmosphere means precipitation of water in all phases. 
 
 
-
-
 # ### Data from CHELSA timeseries (1980-2018) -----------------------------------
 
 ### Create folders for the different decades: 1901-1980
@@ -72,7 +70,7 @@ get_chelsa_timeseries_france <- function(climdir, mystart, myend, thistimeID, mo
     
     for(month in 1:length(months)){
     
-      target.years <- mystart: myend
+      target.years <- mystart:myend
       
       for(year in 1:length(target.years)){
         
@@ -115,8 +113,6 @@ get_chelsa_timeseries_france <- function(climdir, mystart, myend, thistimeID, mo
     }
   }
 
-
-
 ### within each Time_ID, average for the decade
 average_chelsa_timeseries_france <- function(climdir, mystarts, myends, thistimeID, months, vars, timename){
   for(var in 1:length(vars)){
@@ -158,105 +154,128 @@ timenames <- list(TimeID_28="1980_1989",
                   TimeID_32="2007_2017",
                   TimeID_33="2018_2018")
 
-library(foreach)
-library(doParallel)
+# library(foreach)
+# library(doParallel)
+# 
+# tic <- Sys.time()
+# detectCores()
+# cl <- makeCluster(3)   ###
+# registerDoParallel(cl)
+# getDoParWorkers()
 
-tic <- Sys.time()
-detectCores()
-cl <- makeCluster(3)   ###
-registerDoParallel(cl)
-getDoParWorkers()
+# foreach(timeID = 1:length(timeIDs),
+#         .packages=c("terra","predicts"),
+#         .export = c("get_chelsa_timeseries_france",
+#                     "average_chelsa_timeseries_france",
+#                     "timeIDs","starts","ends","vars","timenames")) %dopar% {
 
-foreach(timeID = 1:length(timeIDs),
-        .packages=c("terra","predicts"),
-        .export = c("get_chelsa_timeseries_france",
-                    "average_chelsa_timeseries_france",
-                    "timeIDs","starts","ends","vars","timenames")) %dopar% {
-
+for(timeID in 2:length(timeIDs)) { 
+  
+  tmpFiles(current=TRUE, orphan=TRUE, old=TRUE, remove=TRUE)
+  
+  print(timeID)
+  
+  ### download and crop files
+  get_chelsa_timeseries_france(climdir = "D:/FRANCE/Covariates/Climate/CHELSApresent/",
+                               mystart =  starts[[timeID]], 
+                               myend = ends[[timeID]],
+                               thistimeID = timeIDs[[timeID]],
+                               months = months,
+                               vars = c("pr", "tasmax", "tasmin"))
+  
+  
+  # get_chelsa_timeseries_france(climdir = "D:/FRANCE/Covariates/Climate/CHELSApresent/",
+  #                              mystart =  ends[[timeID]], 
+  #                              myend = ends[[timeID]],
+  #                              thistimeID = timeIDs[[timeID]],
+  #                              months = "12",
+  #                              vars = "tasmin")
+  #https://os.zhdk.cloud.switch.ch/envicloud/chelsa/chelsa_V2/GLOBAL/monthly/tasmin/CHELSA_tasmin_12_1989_V.2.1.tif
+  
+  tmpFiles(current=FALSE, orphan=TRUE, old=TRUE, remove=TRUE)
+  gc()
           
-          ### download and crop files
-          get_chelsa_timeseries_france(climdir = "D:/FRANCE/Covariates/Climate/CHELSApresent/",
-                                                   mystart =  starts[[timeID]], 
-                                                   myend = ends[[timeID]],
-                                                   thistimeID = timeIDs[[timeID]],
-                                                   months = months,
-                                                   vars = c("pr", "tasmax", "tasmin"))
-          tmpFiles(current=FALSE, orphan=TRUE, old=TRUE, remove=TRUE)
-          gc()
+  ### within each Time_ID, average for the time interval
+  average_chelsa_timeseries_france(climdir = "D:/FRANCE/Covariates/Climate/CHELSApresent/",
+                                   mystart =  starts[[timeID]], 
+                                   myend = ends[[timeID]],
+                                   thistimeID = timeIDs[[timeID]],
+                                   months = months,
+                                   vars = c("pr", "tasmax", "tasmin"),
+                                   timename=timenames[[timeID]])
+  
+  tmpFiles(current=FALSE, orphan=TRUE, old=TRUE, remove=TRUE)
+  gc()
           
-          ### within each Time_ID, average for the time interval
-          average_chelsa_timeseries_france(climdir = "D:/FRANCE/Covariates/Climate/CHELSApresent/",
-                                           mystart =  starts[[timeID]], 
-                                           myend = ends[[timeID]],
-                                           thistimeID = timeIDs[[timeID]],
-                                           months = months,
-                                           vars = c("pr", "tasmax", "tasmin"),
-                                           timename=timenames[[timeID]])
-          tmpFiles(current=FALSE, orphan=TRUE, old=TRUE, remove=TRUE)
-          gc()
+  ### Transform UNITS
+  ### pr are in kg m-2 month-1 /100 and needs to be divided by 100 to pass to kg m-2 month-1
+  ### Tasmax and Tasmin is in K/10 so first I need to divide by 10 and to pass to celcius, subtract 273,15
+  fun_K_to_C <- function(x) {(x/10)-273.15}
+  fun_pr <- function(x) {x/100}
           
-          ### Transform UNITS
-          ### pr are in kg m-2 month-1 /100 and needs to be divided by 100 to pass to kg m-2 month-1
-          ### Tasmax and Tasmin is in K/10 so first I need to divide by 10 and to pass to celcius, subtract 273,15
-          fun_K_to_C <- function(x) {(x/10)-273.15}
-          fun_pr <- function(x) {x/100}
+  inputdir <- paste0("D:/FRANCE/Covariates/Climate/CHELSApresent/",timeIDs[[timeID]],"/")
+  setwd(inputdir)
+  
+  prec_files  <- paste0("CHELSA_pr_",months,"_",timenames[[timeID]],"_V.2.1_Fr.tif")
+  tmax_files  <- paste0("CHELSA_tasmax_",months,"_",timenames[[timeID]],"_V.2.1_Fr.tif")
+  tmin_files  <- paste0("CHELSA_tasmin_",months,"_",timenames[[timeID]],"_V.2.1_Fr.tif")
+  
+  prec_r <- rast(prec_files); plot(prec_r)
+  tmax_r <- rast(tmax_files) ; plot(tmax_r)
+  tmin_r <- rast(tmin_files); plot(tmin_r)
           
-          inputdir <- paste0("D:/FRANCE/Covariates/Climate/CHELSAcruts/",timeIDs[[timeID]],"/")
-          setwd(inputdir)
-          
-          prec_files  <- paste0("CHELSA_pr_",months,"_",timenames[[timeID]],"_V.1.0_Fr.tif")
-          tmax_files  <- paste0("CHELSA_tasmax_",months,"_",timenames[[timeID]],"_V.1.0_Fr.tif")
-          tmin_files  <- paste0("CHELSA_tasmin_",months,"_",timenames[[timeID]],"_V.1.0_Fr.tif")
-          
-          prec_r <- rast(prec_files); plot(prec_r)
-          tmax_r <- rast(tmax_files) ; plot(tmax_r)
-          tmin_r <- rast(tmin_files); plot(tmin_r)
-          
-          ### change names
-          names(prec_r) <- paste0("prec_",months,"_",timenames[[timeID]])
-          names(tmax_r) <- paste0("tmax_",months,"_",timenames[[timeID]])
-          names(tmin_r) <- paste0("tmin_",months,"_",timenames[[timeID]])
+  ### change names
+  names(prec_r) <- paste0("prec_",months,"_",timenames[[timeID]])
+  names(tmax_r) <- paste0("tmax_",months,"_",timenames[[timeID]])
+  names(tmin_r) <- paste0("tmin_",months,"_",timenames[[timeID]])
           
           
-          prec_r <- terra::app(prec_r,
-                               fun=fun_pr, 
-                               filename=paste0("CHELSA_prec_",months[[month]],"_",timename,"_V.2.1_Fr_u.tif"), 
-                               overwrite=TRUE)
-          plot(prec_r)
+  prec_r <- terra::app(prec_r,
+                       fun=fun_pr, 
+                       filename=paste0("CHELSA_prec_",timenames[[timeID]],"_V.2.1_Fr_u.tif"), 
+                       overwrite=TRUE)
+  prec_r
+  plot(prec_r)
+  
+  tmax_r <- terra::app(tmax_r,
+                       fun=fun_K_to_C, 
+                       filename=paste0("CHELSA_tmax_",timenames[[timeID]],"_V.2.1_Fr_u.tif"), 
+                       overwrite=TRUE)
+  tmax_r
+  plot(tmax_r)
+  
           
-          tmax_r <- terra::app(tmax_r,
-                               fun=fun_K_to_C, 
-                               filename=paste0("CHELSA_tmax_",months[[month]],"_",timename,"_V.2.1_Fr_u.tif"), 
-                               overwrite=TRUE)
-          plot(tmax_r)
+  tmin_r <- terra::app(tmin_r,
+                       fun=fun_K_to_C, 
+                       filename=paste0("CHELSA_tmin_",timenames[[timeID]],"_V.2.1_Fr_u.tif"), 
+                       overwrite=TRUE)
+  tmin_r
+  plot(tmin_r)
           
-          tmin_r <- terra::app(tmin_r,
-                               fun=fun_K_to_C, 
-                               filename=paste0("CHELSA_tmin_",months[[month]],"_",timename,"_V.2.1_Fr_u.tif"), 
-                               overwrite=TRUE)
-          plot(tmin_r)
+  ### Calculate bioclimatic variables
+  library("predicts")
+  bioclim_t <-bcvars(prec=prec_r,
+                     tmin=tmin_r, 
+                     tmax=tmax_r)
+  bioclim_t
+  plot(bioclim_t)
+  
+  file.remove(tmax_files)
+  file.remove(prec_files)
+  file.remove(tmin_files)
           
-          ### Calculate bioclimatic variables
-          library("predicts")
-          bioclim_t <-bcvars(prec=prec_r,
-                             tmin=tmin_r, 
-                             tmax=tmax_r)
-          file.remove(tmax_files)
-          file.remove(prec_files)
-          file.remove(tmin_files)
-          
-          writeRaster(bioclim_t,
-                      filename=paste0("bioclim",c(1:19),"_",timenames[[timeID]],".tif"), 
-                      overwrite=TRUE)
-          
-          tmpFiles(current=TRUE, orphan=TRUE, old=TRUE, remove=TRUE)
-          
-          gc()
+  writeRaster(bioclim_t,
+              filename=paste0("bioclim",c(1:19),"_",timenames[[timeID]],".tif"),
+              overwrite=TRUE)
+  
+  tmpFiles(current=TRUE, orphan=TRUE, old=TRUE, remove=TRUE)
+  gc()
+  
 }
 
-stopCluster(cl)
-
-tac <- Sys.time()
-tac-tic
+# stopCluster(cl)
+# 
+# tac <- Sys.time()
+# tac-tic
 
 ### end of this script
