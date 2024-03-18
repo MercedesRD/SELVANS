@@ -305,6 +305,10 @@ tmpFiles(current = FALSE,orphan = TRUE,old = TRUE,remove = TRUE)
 
 # ### 3. For each combination of relief covariates: -----------------------
 
+### some did not finished running...
+#relief.combi <- relief.combi[c(27:38),]
+
+
 
 ### 3. For each combination of relief covariates:
 
@@ -349,7 +353,7 @@ library(foreach)
 
 tic <- Sys.time()
 detectCores()
-cl <- makeCluster(13)   ###
+cl <- makeCluster(12)   ###
 registerDoParallel(cl)
 getDoParWorkers()
 
@@ -593,7 +597,7 @@ kquality_scorpan_combis <- foreach(j = 1:nrow(relief.combi),
     B_Max_sites <- max(summary.PdGn.BASONET$n)
     
 
-# 6.b Dintra/Dinter BASONET -----------------------------------------------
+# 5.b Dintra/Dinter BASONET -----------------------------------------------
 
     
     ### 6.b Din/Dex
@@ -633,9 +637,9 @@ kquality_scorpan_combis <- foreach(j = 1:nrow(relief.combi),
     gc()
                                   
     
-# ### 7. Predict cluster assignment to soil profiles HARMONISED DATASET--------
+# ### 6. Predict cluster assignment to soil profiles HARMONISED DATASET--------
     
-    ### 7. Predict cluster assignment to soil properties observations - HARMONISED dataset:
+    ### 6. Predict cluster assignment to soil properties observations - HARMONISED dataset:
     
     ### Extract the index of the dataframe rows that are na/nan/Inf
     df.na <- which(apply(SH.scorpan.j.rs, 
@@ -766,17 +770,13 @@ stopCluster(cl)
 tac <- Sys.time()
 tac-tic
 
-save.image("C:/Users/mercedes.roman/Desktop/SELVANS/WP1/R_output/5.PedogenonModeling/relief_combi1.RData")
+save.image("C:/Users/mercedes.roman/Desktop/SELVANS/WP1/R_output/5.PedogenonModeling/relief_combi_preferred18032024.RData")
 
-
-#########################################################################################################################
 
 ### 8. Create HEATMAPS of cluster quality for each k and each covariate combination and choose optimal k and covariate combination
 
 
-
 ### 9. Map pedogenon classes
-
 
 
 ### 10. Assign soil health indicators (soil condition indications) to each pedogenon class and plot values
@@ -785,5 +785,3 @@ save.image("C:/Users/mercedes.roman/Desktop/SELVANS/WP1/R_output/5.PedogenonMode
 ### Boxplots by vegetation class (conifers vs broadleaved, native vs exotic, etc.)
 ### Diagram phases by pedogenon class? e.g., bulk density vs TOC or TOC/clay
 
-
-####################################################################################################################
