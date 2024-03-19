@@ -56,9 +56,10 @@ st_write(france_buffer, "C:/Users/mercedes.roman/Desktop/SELVANS/France/Covariat
 france_buffer_WGS84 <- st_transform(france_buffer,4326)
 st_write(france_buffer_WGS84, "C:/Users/mercedes.roman/Desktop/SELVANS/France/Covariates/Administrative/france_bufferWGS84.shp")
 france_buffer_WGS84 <- st_read("C:/Users/mercedes.roman/Desktop/SELVANS/France/Covariates/Administrative/france_bufferWGS84.shp")
+france_buffer_WGS84 <- st_read("D:/FRANCE/Covariates/Administrative/france_bufferWGS84.shp")
 
 # ### Load DEM from France (same as GSM AWC products) to get extent
-# dem <- rast("C:/Users/mercedes.roman/Desktop/SELVANS/France/Covariates/Relief/srtm.tif")
+# dem <- rast("C:/FRANCE/Covariates/Relief/srtm.tif")
 # st_crs(dem)
 # dem <- terra::project(dem, "EPSG:4326")
 # plot(dem)
@@ -79,6 +80,7 @@ france_buffer_WGS84 <- st_read("C:/Users/mercedes.roman/Desktop/SELVANS/France/C
 ### Create folders for the different time steps
 setwd("C:/Users/mercedes.roman/Desktop/SELVANS/France/Covariates/Climate/")
 climDir <- "C:/Users/mercedes.roman/Desktop/SELVANS/France/Covariates/Climate/"
+climDir <- "D:/FRANCE/Covariates/Climate/"
 
 timeSteps <- c(-80:20) 
 for(i in 1:length(timeSteps)){
@@ -612,7 +614,7 @@ get_chelsa_paleo_france_crop <- function(climdir, timeIDs, vars, ExtD){
     setwd(paste0(climdir,"TimeID_",timeIDs[[timeID]],"/"))
     print(paste0("Cropping and storing rasters for France in ",paste0(climdir,"TimeID_",timeIDs[[timeID]],"/")))
     ### List tif files
-    bioclim <- list.files(pattern=".tif")
+    bioclim <- list.files(pattern="V1.0.tif")
     
     ### Crop to the extent of France (keep same alignment and resolution) 
     for(r in 1:length(bioclim)){
@@ -622,7 +624,7 @@ get_chelsa_paleo_france_crop <- function(climdir, timeIDs, vars, ExtD){
       ### Crop to the extent of France
       bioclimrastc <- terra::crop(bioclimrast, ExtD)
       ### Write Raster
-      writeRaster(bioclimrastc, filename = paste0(names(bioclimrastc),"_Fr.tif"))
+      writeRaster(bioclimrastc, filename = paste0(names(bioclimrastc),"_Fr.tif"), overwrite=TRUE)
       ### Remove raster global extent
       file.remove(paste0(climdir,"TimeID_",timeIDs[[timeID]],"/",bioclim[[r]]))
       
@@ -637,6 +639,7 @@ timez <- as.character(c(1:20))
 ### List of bioclim variables
 ### Only for the subset I selected
 biovars <- paste0("bio", c("01","03","05","08","09","12","15","17"))
+
 ### Extent to crop
 myext <- ext(st_bbox(france_buffer_WGS84))
 
@@ -649,6 +652,20 @@ get_chelsa_paleo_france_crop(climdir = "C:/Users/mercedes.roman/Desktop/SELVANS/
                              timeIDs = "-76", 
                              vars = biovars,
                              ExtD = myext)
+
+### I add other bioclimatic variables (Note from 19/03/2024)
+biovars <- paste0("bio", c("01","02","03","04","05","06","07","08","09","10","11","12","13","14","15","16","17","18","19"))
+get_chelsa_paleo_france_crop(climdir = climDir,
+                             timeIDs = "-7", 
+                             vars = biovars,
+                             ExtD = myext)
+biovars <- paste0("bio", c("02","06","07","10","11","13","14","16","18","19"))
+timez <- as.character(c(-6:19))
+get_chelsa_paleo_france_crop(climdir = climDir,
+                             timeIDs = timez, 
+                             vars = biovars,
+                             ExtD = myext)
+
 
 ### 2.5 Scaled variables -----------------------------------------------------
 
@@ -942,6 +959,11 @@ biovars <- paste0("bio", c("01","02","03","04","05","06","07","08","09","10","11
 ### I had selected the bioclim variables based on 8000 BCE correlations.
 ### I repeat the analysis with all bioclimatic variables
 get_chelsa_paleo_france_crop(climdir = "C:/Users/mercedes.roman/Desktop/SELVANS/France/Covariates/Climate/",
+                             timeIDs = "-9", 
+                             vars = biovars,
+                             ExtD = myext)
+
+get_chelsa_paleo_france_crop(climdir = "D:/FRANCE/Covariates/Climate/",
                              timeIDs = "-9", 
                              vars = biovars,
                              ExtD = myext)

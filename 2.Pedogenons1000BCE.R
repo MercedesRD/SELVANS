@@ -608,6 +608,6 @@ plot(k.raster)
 ## Write to file
 #writeRaster(k.raster, filename= paste0("K",K[[m]],".tif"), na.rm=T,inf.rm=T, format="GTiff", overwrite=TRUE )
 gc()
-  
+save.image("D:/FRANCE/R_output/2_Pedogenons1000BCE.RData")  
 
 #### end of this script
