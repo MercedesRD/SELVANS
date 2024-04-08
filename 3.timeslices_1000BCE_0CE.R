@@ -295,10 +295,7 @@ files_1000BCE <- list.files(pattern="Fr.tif")
 
 file.copy(from = paste0("./",files_1000BCE),
           to = paste0("C:/Users/mercedes.roman/Desktop/SELVANS/France/Output/mytimeslices/TimeID_0/", files_1000BCE))
-file.rename(from = paste0("./", files_1000BCE),
-            to = gsub(x = paste0("C:/Users/mercedes.roman/Desktop/SELVANS/France/Output/mytimeslices/TimeID_0/", files_1000BCE),
-                      pattern="CHELSA_TraCE21k_",
-                      replacement="CHELSA_"))
+
 file.rename(from = paste0("C:/Users/mercedes.roman/Desktop/SELVANS/France/Output/mytimeslices/TimeID_0/", files_1000BCE),
             to = gsub(x = paste0("C:/Users/mercedes.roman/Desktop/SELVANS/France/Output/mytimeslices/TimeID_0/", files_1000BCE),
                       pattern="CHELSA_TraCE21k_",
@@ -395,7 +392,6 @@ file.rename(from = paste0("./", files_500BCE),
                       pattern="_-4_V1.0_Fr",
                       replacement="_timeID_5"))
 
-
 setwd("D:/FRANCE/Covariates/Climate/TimeID_-3/")
 files_400BCE <- list.files(pattern="Fr.tif")
 
@@ -449,7 +445,6 @@ file.rename(from = paste0("./", files_200BCE),
                       pattern="_-1_V1.0_Fr",
                       replacement="_timeID_8"))
 
-
 setwd("D:/FRANCE/Covariates/Climate/TimeID_0/")
 files_100BCE <- list.files(pattern="Fr.tif")
 
@@ -464,11 +459,190 @@ setwd("C:/Users/mercedes.roman/Desktop/SELVANS/France/Output/mytimeslices/TimeID
 files_100BCE <- list.files(pattern="CHELSA")
 file.rename(from = paste0("./", files_100BCE),
             to = gsub(x = paste0("./", files_100BCE),
-                      pattern="_-1_V1.0_Fr",
+                      pattern="_0_V1.0_Fr",
                       replacement="_timeID_9"))
 
 
+setwd("D:/FRANCE/Covariates/Climate/TimeID_1/")
+files_0CE <- list.files(pattern="Fr.tif")
+
+file.copy(from = paste0("./",files_0CE),
+          to = paste0("C:/Users/mercedes.roman/Desktop/SELVANS/France/Output/mytimeslices/TimeID_10/", files_0CE))
+
+file.rename(from = paste0("C:/Users/mercedes.roman/Desktop/SELVANS/France/Output/mytimeslices/TimeID_10/", files_0CE),
+            to = gsub(x = paste0("C:/Users/mercedes.roman/Desktop/SELVANS/France/Output/mytimeslices/TimeID_10/", files_0CE),
+                      pattern="CHELSA_TraCE21k_",
+                      replacement="CHELSA_"))
+setwd("C:/Users/mercedes.roman/Desktop/SELVANS/France/Output/mytimeslices/TimeID_10/")
+files_0CE <- list.files(pattern="CHELSA")
+file.rename(from = paste0("./", files_0CE),
+            to = gsub(x = paste0("./", files_0CE),
+                      pattern="_1_V1.0_Fr",
+                      replacement="_timeID_10"))
 
 
+#  2. Forest cover (Zanon et al., 2018)  - 1000 BCE - 0CE ----------------------------------------------------------------
+
+### The fossil dataset was divided into 49 timeslices ranging from 12,000 to 0 
+### calibrated years BP (years before AD 1950; hereafter BP). 
+### Each timeslice covers a 250-year window with the exception 
+### of the most recent one, which is asymmetric as it cannot project 
+### into the future, and therefore covers an interval of 185 years 
+### centered on 0 BP.
+
+### For my new Time IDs between TimeID_0 to TimeID_10 I will need the files named
+### 1750 BP, 2000 BP, 2250 BP, 2500 BP, 2750 BP and 3000 BP that correspond to 
+### 200 CE,  50 BCE, 300 BCE, 550 BCE,  800 BCE and 1050 BCE
+
+setwd("D:/FRANCE/Covariates/vegetation/Zanon/")
+
+zanon_files <- list.files(pattern=".tif")
+
+### some Zanon maps correspond with my TimeIDs (midpoint, not whole interval)
+
+file.copy(from = "D:/FRANCE/Covariates/vegetation/Zanon/forest_cover_2500.tif",
+          to = "C:/Users/mercedes.roman/Desktop/SELVANS/France/Output/mytimeslices/TimeID_4/forest_cover_2500.tif")
+file.rename(from = "C:/Users/mercedes.roman/Desktop/SELVANS/France/Output/mytimeslices/TimeID_4/forest_cover_2500.tif",
+            to = "C:/Users/mercedes.roman/Desktop/SELVANS/France/Output/mytimeslices/TimeID_4/forest_cover_timeID_4.tif")
+
+file.copy(from = "D:/FRANCE/Covariates/vegetation/Zanon/forest_cover_2000.tif",
+          to = "C:/Users/mercedes.roman/Desktop/SELVANS/France/Output/mytimeslices/TimeID_9/forest_cover_2000.tif")
+file.rename(from = "C:/Users/mercedes.roman/Desktop/SELVANS/France/Output/mytimeslices/TimeID_9/forest_cover_2000.tif",
+            to = "C:/Users/mercedes.roman/Desktop/SELVANS/France/Output/mytimeslices/TimeID_9/forest_cover_timeID_9.tif")
 
 
+### The time IDs correspond to the following interval midpoint
+
+yearsBP <- c(-3000,-2900,-2800,-2700,-2600,-2500,-2400,-2300,-2200,-2100,-2000,-1900)
+timeSteps <- (paste0("TimeID_",-1:10))
+
+### function to make linear regression model
+
+lmZanon.1000BCE_0CE.func <- function(Zanon0, Zanon1, timeZ0, timeZ1, TimeBP,outdir, name) {
+  
+  ### Make a SpatRaster
+  input <- c(Zanon0,Zanon1)
+
+  ### Calculate slope and intercept
+  slope  <-  terra::lapp(input, fun=function(x,y){return((y-x)/(timeZ1-timeZ0))})
+  input <- c(slope,Zanon1)
+  intercept <- terra::lapp(input, fun=function(x,y){return(y - (x*timeZ1))})
+  
+  ### Estimate forest cover for target time
+  input <- c(intercept,slope)
+  forest_cover <- terra::lapp(input, fun=function(x,y){return(x+(y*TimeBP))},
+                              filename=paste0(outdir, name,".tif"), 
+                              overwrite=TRUE)
+  return(forest_cover)
+  
+  }
+
+### TimeID_0
+setwd("D:/FRANCE/Covariates/vegetation/Zanon/")
+
+Zanon_3000BP <- rast("forest_cover_3000.tif")
+Zanon_2750BP <- rast("forest_cover_2750.tif")
+Zanon_2500BP <- rast("forest_cover_2500.tif")
+Zanon_2250BP <- rast("forest_cover_2250.tif")
+Zanon_2000BP <- rast("forest_cover_2000.tif")
+Zanon_1750BP <- rast("forest_cover_1750.tif")
+
+putdir <- "C:/Users/mercedes.roman/Desktop/SELVANS/France/Output/mytimeslices/TimeID_0/"
+forest_cover_timeID_0 <- lmZanon.1000BCE_0CE.func(Zanon0 = Zanon_3000BP, 
+                                                  Zanon1 = Zanon_2750BP, 
+                                                  timeZ0 = -3000, 
+                                                  timeZ1 = -2750, 
+                                                  TimeBP = -2900,
+                                                  outdir = putdir,
+                                                  name="forest_cover_timeID_0")
+plot(forest_cover_timeID_0)
+
+### timeID_1
+putdir <- "C:/Users/mercedes.roman/Desktop/SELVANS/France/Output/mytimeslices/TimeID_1/"
+forest_cover_timeID_1 <- lmZanon.1000BCE_0CE.func(Zanon0 = Zanon_3000BP, 
+                                                  Zanon1 = Zanon_2750BP, 
+                                                  timeZ0 = -3000, 
+                                                  timeZ1 = -2750, 
+                                                  TimeBP = -2800,
+                                                  outdir = putdir,
+                                                  name="forest_cover_timeID_1")
+plot(forest_cover_timeID_1)
+
+### timeID_2
+putdir <- "C:/Users/mercedes.roman/Desktop/SELVANS/France/Output/mytimeslices/TimeID_2/"
+forest_cover_timeID_2 <- lmZanon.1000BCE_0CE.func(Zanon0 = Zanon_2750BP, 
+                                                  Zanon1 = Zanon_2500BP, 
+                                                  timeZ0 = -2750, 
+                                                  timeZ1 = -2500, 
+                                                  TimeBP = -2700,
+                                                  outdir = putdir,
+                                                  name="forest_cover_timeID_2")
+plot(forest_cover_timeID_2)
+
+### timeID_3
+putdir <- "C:/Users/mercedes.roman/Desktop/SELVANS/France/Output/mytimeslices/TimeID_3/"
+forest_cover_timeID_3 <- lmZanon.1000BCE_0CE.func(Zanon0 = Zanon_2750BP, 
+                                                  Zanon1 = Zanon_2500BP, 
+                                                  timeZ0 = -2750, 
+                                                  timeZ1 = -2500, 
+                                                  TimeBP = -2600,
+                                                  outdir = putdir,
+                                                  name="forest_cover_timeID_3")
+plot(forest_cover_timeID_3)
+
+### timeID_5
+putdir <- "C:/Users/mercedes.roman/Desktop/SELVANS/France/Output/mytimeslices/TimeID_5/"
+forest_cover_timeID_5 <- lmZanon.1000BCE_0CE.func(Zanon0 = Zanon_2500BP, 
+                                                  Zanon1 = Zanon_2250BP, 
+                                                  timeZ0 = -2500, 
+                                                  timeZ1 = -2250, 
+                                                  TimeBP = -2400,
+                                                  outdir = putdir,
+                                                  name="forest_cover_timeID_5")
+plot(forest_cover_timeID_5)
+
+### timeID_6
+putdir <- "C:/Users/mercedes.roman/Desktop/SELVANS/France/Output/mytimeslices/TimeID_6/"
+forest_cover_timeID_6 <- lmZanon.1000BCE_0CE.func(Zanon0 = Zanon_2500BP, 
+                                                  Zanon1 = Zanon_2250BP, 
+                                                  timeZ0 = -2500, 
+                                                  timeZ1 = -2250, 
+                                                  TimeBP = -2300,
+                                                  outdir = putdir,
+                                                  name="forest_cover_timeID_6")
+plot(forest_cover_timeID_6)
+
+### timeID_7
+putdir <- "C:/Users/mercedes.roman/Desktop/SELVANS/France/Output/mytimeslices/TimeID_7/"
+forest_cover_timeID_7 <- lmZanon.1000BCE_0CE.func(Zanon0 = Zanon_2250BP, 
+                                                  Zanon1 = Zanon_2000BP, 
+                                                  timeZ0 = -2250, 
+                                                  timeZ1 = -2000, 
+                                                  TimeBP = -2200,
+                                                  outdir = putdir,
+                                                  name="forest_cover_timeID_7")
+plot(forest_cover_timeID_7)
+
+### timeID_8
+putdir <- "C:/Users/mercedes.roman/Desktop/SELVANS/France/Output/mytimeslices/TimeID_8/"
+forest_cover_timeID_8 <- lmZanon.1000BCE_0CE.func(Zanon0 = Zanon_2250BP, 
+                                                  Zanon1 = Zanon_2000BP, 
+                                                  timeZ0 = -2250, 
+                                                  timeZ1 = -2000, 
+                                                  TimeBP = -2100,
+                                                  outdir = putdir,
+                                                  name="forest_cover_timeID_8")
+plot(forest_cover_timeID_8)
+
+### timeID_10
+putdir <- "C:/Users/mercedes.roman/Desktop/SELVANS/France/Output/mytimeslices/TimeID_10/"
+forest_cover_timeID_10 <- lmZanon.1000BCE_0CE.func(Zanon0 = Zanon_2000BP, 
+                                                  Zanon1 = Zanon_1750BP, 
+                                                  timeZ0 = -2000, 
+                                                  timeZ1 = -1750, 
+                                                  TimeBP = -1900,
+                                                  outdir = putdir,
+                                                  name="forest_cover_timeID_10")
+plot(forest_cover_timeID_10)
+
+### end of the script
