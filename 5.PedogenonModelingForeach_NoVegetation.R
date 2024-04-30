@@ -2,13 +2,14 @@
 ###  Method for optimizing pedogenon classes as soil districts for the Basque Country
 ###  in the context of the European soil Monitoring Law
 ###  In this script: Modeling and optimization the number of clusters and covariate selection
+###                  EXCLUDING POTENTIAL VEGETATION
 
 ### Desired extent: Basque Country
 ### Resolution: 25m
 ### CRS: EPSG=25830
 
 ###  Author: Mercedes Roman Dobarco
-###  Date: 15/02/2024
+###  Date: 30/04/2024
 
 ####### Load packages
 ### Spatial
@@ -62,7 +63,7 @@ source("C:/Users/mercedes.roman/Desktop/SELVANS/WP1/R_scripts/Euskadi/5.Pedogeno
 ### 1.c Guo et al (2003) equations applied to the Basque Country
 ### 1.d Minimum number of observations per pedogenon class required for validation (~10)
 ### something between 2 to 140 classes
-search_space <- c(2:140)
+search_space <- c(2:50)
 
 # ### 2. Selection of SCORPAN variables --------------------------------------
 
@@ -106,10 +107,10 @@ relief.r <- rast(c(relief.fixed,relief.potential))
 names(relief.r) <- paste0("r_",names(relief.r))
 
 ### Vegetation: 4 or 5 PCs of MVG PCA scores (54-66 % variance)
-setwd("C:/Covariates/Euskadi/Organisms/")
-vegetation.vars <- c("MVG_PC1.tif","MVG_PC2.tif","MVG_PC3.tif","MVG_PC4.tif","MVG_PC5.tif")
-vegetation.r <- rast(vegetation.vars)
-names(vegetation.r) <- paste0("o_",names(vegetation.r))
+# setwd("C:/Covariates/Euskadi/Organisms/")
+# vegetation.vars <- c("MVG_PC1.tif","MVG_PC2.tif","MVG_PC3.tif","MVG_PC4.tif","MVG_PC5.tif")
+# vegetation.r <- rast(vegetation.vars)
+# names(vegetation.r) <- paste0("o_",names(vegetation.r))
 
 ### Parent material: 8 or 50 % of variance
 setwd("C:/Users/mercedes.roman/Desktop/SELVANS/WP1/R_output/1.CovariatesEus/")
@@ -119,7 +120,7 @@ parentmaterial.vars <- c("pm_mca_1.tif","pm_mca_2.tif","pm_mca_3.tif",
 parentmaterial.r <- rast(parentmaterial.vars)
 
 ### All variables
-scorpan <- c(clim.r, vegetation.r, relief.r, parentmaterial.r)
+scorpan <- c(clim.r, relief.r, parentmaterial.r)
 
 ### 2.a Take sample
 ### Regular sample
@@ -231,29 +232,29 @@ relief.potential <- names(relief.r)[-1] ### Take out DEM, which will be fixed
 relief.preferred <- c("r_slope","r_northerness","r_easterness","r_north_slope",
                       "r_twi","r_valley_depth","r_st_height")
 
-### Split by 3,5,10 window
-relief.potential.3 <-  c("r_slope",
-                         "r_northerness","r_easterness","r_north_slope",
-                         "r_twi","r_mrrtf","r_mrvbf",
-                         "r_valley_depth","r_st_height","r_mid_slope",
-                         "r_norm_height","r_slope_height",
-                         "r_p_curv","r_t_curv","r_tpi_8_3")
-
-relief.potential.5 <-  c("r_slope_5",
-                         "r_northerness","r_easterness","r_north_slope",
-                         "r_twi","r_mrrtf","r_mrvbf",
-                         "r_valley_depth","r_st_height","r_mid_slope",
-                         "r_norm_height","r_slope_height",
-                         "r_pr_curv_5","r_pl_curv_5","r_lg_curv_5","r_cs_curv_5",
-                         "r_tpi_8_3")
-
-relief.potential.10 <-  c("r_slope_10",
-                         "r_northerness","r_easterness","r_north_slope",
-                         "r_twi","r_mrrtf","r_mrvbf",
-                         "r_valley_depth","r_st_height","r_mid_slope",
-                         "r_norm_height","r_slope_height",
-                         "r_pr_curv_10","r_pl_curv_10","r_lg_curv_10","r_cs_curv_10",
-                         "r_tpi_8_3")
+# ### Split by 3,5,10 window
+# relief.potential.3 <-  c("r_slope",
+#                          "r_northerness","r_easterness","r_north_slope",
+#                          "r_twi","r_mrrtf","r_mrvbf",
+#                          "r_valley_depth","r_st_height","r_mid_slope",
+#                          "r_norm_height","r_slope_height",
+#                          "r_p_curv","r_t_curv","r_tpi_8_3")
+# 
+# relief.potential.5 <-  c("r_slope_5",
+#                          "r_northerness","r_easterness","r_north_slope",
+#                          "r_twi","r_mrrtf","r_mrvbf",
+#                          "r_valley_depth","r_st_height","r_mid_slope",
+#                          "r_norm_height","r_slope_height",
+#                          "r_pr_curv_5","r_pl_curv_5","r_lg_curv_5","r_cs_curv_5",
+#                          "r_tpi_8_3")
+# 
+# relief.potential.10 <-  c("r_slope_10",
+#                          "r_northerness","r_easterness","r_north_slope",
+#                          "r_twi","r_mrrtf","r_mrvbf",
+#                          "r_valley_depth","r_st_height","r_mid_slope",
+#                          "r_norm_height","r_slope_height",
+#                          "r_pr_curv_10","r_pl_curv_10","r_lg_curv_10","r_cs_curv_10",
+#                          "r_tpi_8_3")
   
 ### n=4
 ### I start from my subset of preferred variables
@@ -296,11 +297,11 @@ relief.combi.v <- apply(X = relief.combi, MARGIN = 1,  FUN = function(x){paste(x
 ### Keep the combination in a cata.frame with a code
 relief.combi.df <- data.frame (ID = 1:nrow(relief.combi), relief.combi = relief.combi.v)
 
-### fixed variables
-fixed.columns <- c(names(clim.r), names(vegetation.r), "r_dem", names(parentmaterial.r))
+### fixed variables  ### I eliminate vegetation
+fixed.columns <- c(names(clim.r),"r_dem",names(parentmaterial.r))
 
 ### directory to store the models
-OutDir <- "C:/Users/mercedes.roman/Desktop/SELVANS/WP1/R_output/5.PedogenonModeling/"
+OutDir <- "C:/Users/mercedes.roman/Desktop/SELVANS/WP1/R_output/5.PedogenonModelingNoVegetation/"
 
 ### Delete temporal files
 tmpFiles(current = FALSE,orphan = TRUE,old = TRUE,remove = TRUE)
@@ -309,7 +310,6 @@ tmpFiles(current = FALSE,orphan = TRUE,old = TRUE,remove = TRUE)
 
 ### some did not finished running...
 #relief.combi <- relief.combi[c(27:38),]
-
 
 
 ### 3. For each combination of relief covariates:
@@ -355,7 +355,7 @@ library(foreach)
 
 tic <- Sys.time()
 detectCores()
-cl <- makeCluster(12)   ###
+cl <- makeCluster(20)   ###
 registerDoParallel(cl)
 getDoParWorkers()
 
@@ -772,18 +772,18 @@ stopCluster(cl)
 tac <- Sys.time()
 tac-tic
 
-save.image("C:/Users/mercedes.roman/Desktop/SELVANS/WP1/R_output/5.PedogenonModeling/relief_combi_preferred18032024.RData")
-
+### Does not exist
+### save.image("C:/Users/mercedes.roman/Desktop/SELVANS/WP1/R_output/5.PedogenonModelingNoVegetation/relief_noVeg_combi27032024.RData")
 
 
 # 8. Create HEATMAPS of cluster quality for each k and each covari --------
 
 ### 8. Create HEATMAPS of cluster quality for each k and each covariate combination and choose optimal k and covariate combination
 
-### 20/03/2024
-load("C:/Users/mercedes.roman/Desktop/SELVANS/WP1/R_output/5.PedogenonModeling/relief_combi_preferred18032024.RData")
+### 26/04/2024
+### load("C:/Users/mercedes.roman/Desktop/SELVANS/WP1/R_output/5.PedogenonModelingNoVegetation/relief_noVeg_combi27032024.RData")
 
-OutDir <- "C:/Users/mercedes.roman/Desktop/SELVANS/WP1/R_output/5.PedogenonModeling/"
+OutDir <- "C:/Users/mercedes.roman/Desktop/SELVANS/WP1/R_output/5.PedogenonModelingNoVegetation/"
 setwd(OutDir)
 
 ### Load the tables with clustering indices results in a for loop
@@ -821,7 +821,9 @@ rm(table.1, table.j,j)
 ### Make heatmaps in for loop
 indices <- unique(table_indices$Index)
 
-setwd("C:/Users/mercedes.roman/Desktop/SELVANS/WP1/R_output/5.PedogenonModeling/Plots")
+dir.create("C:/Users/mercedes.roman/Desktop/SELVANS/WP1/R_output/5.PedogenonModelingNoVegetation/Plots")
+setwd("C:/Users/mercedes.roman/Desktop/SELVANS/WP1/R_output/5.PedogenonModelingNoVegetation/Plots/")
+
 
 for(index in 1:length(indices)){
   
@@ -859,6 +861,300 @@ for(index in 1:length(indices)){
   dev.off()
   
 }
+
+
+### 9. Preferred options ---------------------------------------------------
+
+### I am searching for the combination that:
+### - has at least 3 observations per pedogenon class
+### - has the smallest Din/Dex with BASONET and the complete dataset
+### - has a large Calinski-Harbasz index
+
+index.table <- table_indices[table_indices$Index %in% 
+                               c("Calinski-Harbasz","B_Min_sites",
+                                 "SH_Min_sites","B_Din_Dex","SH_Din_Dex"), ]
+index.table.long <- tidyr::pivot_longer(index.table, 
+                                        cols =  starts_with("K."), 
+                                        names_to = "clusters",
+                                        values_to = "index")
+
+index.table.wide <- tidyr::pivot_wider(index.table.long, 
+                                       id_cols=c(scorpan_comb ,clusters ),
+                                       names_from = "Index",
+                                       values_from = "index")
+colnames(index.table.wide)<- c("scorpan_comb","clusters","Calinski_Harbasz",
+                               "B_Min_sites","B_Din_Dex","SH_Min_sites","SH_Din_Dex")
+
+### At least 3 onservations per pedogenon class
+index.table.wide <- index.table.wide[index.table.wide$B_Min_sites >= 3,]
+#index.table.wide <- index.table.wide[index.table.wide$scorpan_comb != 38,] ### This one has a weird result 
+### The Din/Dex smaller than 1 (at least the same dispersion, no more!)
+index.table.wide <- index.table.wide[index.table.wide$B_Din_Dex <=1,]
+### Arrange
+index.table.wide <- arrange(index.table.wide, B_Din_Dex, desc(Calinski_Harbasz))
+write.csv(index.table.wide, file="CH_BDinDex_Min3.csv")
+index.table.wide[1:10,]
+
+index.table.wide$clusters <- factor(index.table.wide$clusters,
+                                    levels=paste0("K.",c(4:10)))
+index.table.wide <- arrange(index.table.wide, B_Din_Dex, desc(Calinski_Harbasz))
+
+ggplot(index.table.wide,
+       aes(x =scorpan_comb, y = clusters, fill = B_Din_Dex)) +
+  geom_tile() +
+  scale_fill_viridis() +
+  labs(title = "Din/Dex BASONET")+
+  labs(x="SCORPAN combination")+
+  labs(y="Number of clusters")+
+  theme(
+    axis.title.x = element_text(size = 16),
+    axis.text.x = element_text(size = 12),
+    axis.title.y = element_text(size = 16),
+    axis.text.y = element_text(size = 8),
+    legend.text=element_text(size=16), 
+    legend.title=element_text(size=16),
+    plot.title=element_text(size=20))
+
+ggplot(index.table.wide,
+       aes(x =scorpan_comb, y = clusters, fill = Calinski_Harbasz)) +
+  geom_tile() +
+  scale_fill_viridis(direction=-1) +
+  labs(title = "Calinski-Harbasz BASONET")+
+  labs(x="SCORPAN combination")+
+  labs(y="Number of clusters")+
+  theme(
+    axis.title.x = element_text(size = 16),
+    axis.text.x = element_text(size = 12),
+    axis.title.y = element_text(size = 16),
+    axis.text.y = element_text(size = 8),
+    legend.text=element_text(size=16), 
+    legend.title=element_text(size=16),
+    plot.title=element_text(size=20))
+
+
+#sort(unique(index.table.wide$scorpan_comb))
+index.table.wide$scorpan_comb_f <- factor(index.table.wide$scorpan_comb,
+                                          levels = sort(unique(index.table.wide$scorpan_comb)))
+ggplot(index.table.wide,
+       aes(x = B_Din_Dex, y = Calinski_Harbasz, 
+           color=scorpan_comb_f, shape=clusters)) +
+  geom_point(size=4) +
+  scale_shape_manual(values = c('K.4'= 0,'K.5'= 8,'K.6'=15, 'K.7'=18, 'K.8'=16,
+                                'K.9'=17,'K.10'=1)) +
+  # # scale_color_viridis(discrete=TRUE)+
+  labs(title = "Calinski-Harbasz index and Din/Dex")+
+  theme(
+    axis.title.x = element_text(size = 16),
+    axis.text.x = element_text(size = 12),
+    axis.title.y = element_text(size = 16),
+    axis.text.y = element_text(size = 8),
+    legend.text=element_text(size=16), 
+    legend.title=element_text(size=16),
+    plot.title=element_text(size=14))
+
+
+
+
+
+
+
+
+
+top <- data.s[data.s$bi_class %in% c("4-4"),]
+index.table.wide$DinDexNeg <- index.table.wide$B_Din_Dex * (-1)
+
+data <- bi_class(top, x = "Calinski_Harbasz", y = "DinDexNeg", 
+                 style = "equal", dim = 3)
+data <- as.data.frame(data)
+write.csv(data, file="biscale_Basonet_equal.csv")
+
+ggplot(data,
+       aes(x =scorpan_comb, y = clusters, fill = bi_class)) +
+  geom_tile() +
+  bi_scale_fill(pal = "DkBlue2", dim = 3) +
+  labs(title = "Calinski-Harbasz index and Din/Dex")+
+  labs(x="SCORPAN combination")+
+  labs(y="Number of clusters")+
+  theme(
+    axis.title.x = element_text(size = 16),
+    axis.text.x = element_text(size = 12),
+    axis.title.y = element_text(size = 16),
+    axis.text.y = element_text(size = 8),
+    legend.text=element_text(size=16), 
+    legend.title=element_text(size=16),
+    plot.title=element_text(size=14))
+
+
+
+# sample 4x4 legend
+legend <- bi_legend(pal = "DkBlue2",
+                    dim = 3,
+                    xlab = "Calinski-Harbasz",
+                    ylab = "- Din/Dex",
+                    size = 16)
+bi_pal(pal="DkBlue2", dim = 4, preview = TRUE, flip_axes = FALSE, rotate_pal = FALSE)
+
+
+
+
+
+
+
+# create classes
+index.table.wide$DinDexNeg <- index.table.wide$B_Din_Dex * (-1)
+data <- bi_class(index.table.wide, x = "Calinski_Harbasz", y = "DinDexNeg", 
+                 style = "quantile", dim = 4)
+
+hist(data$Calinski_Harbasz,breaks=30)
+hist(data$B_Din_Dex,breaks=30)
+
+ggplot(data,
+       aes(x =scorpan_comb, y = clusters, fill = bi_class)) +
+  geom_tile() +
+  bi_scale_fill(pal = "DkBlue2", dim = 4) +
+  labs(title = "Calinski-Harbasz index and Din/Dex")+
+  labs(x="SCORPAN combination")+
+  labs(y="Number of clusters")+
+  theme(
+    axis.title.x = element_text(size = 16),
+    axis.text.x = element_text(size = 12),
+    axis.title.y = element_text(size = 16),
+    axis.text.y = element_text(size = 8),
+    legend.text=element_text(size=16), 
+    legend.title=element_text(size=16),
+    plot.title=element_text(size=14))
+
+data[data$bi_class =="4-4",]
+# scorpan_comb clusters Calinski_Harbasz B_Min_sites B_Din_Dex SH_Min_sites SH_Din_Dex DinDexNeg bi_class
+#         <int> <fct>               <dbl>        <dbl>     <dbl>        <dbl>      <dbl>    <dbl> <chr>   
+# 1           16 K.9                 1344.           4     0.795            6       1.10    -0.795 4-4     
+# 2           11 K.10                1350.           4     0.83             6       1.13    -0.83  4-4     
+# 3            5 K.10                1358.           4     0.836            6       1.19    -0.836 4-4     
+# 4           20 K.11                1322.           3     0.843            6       1.08    -0.843 4-4     
+# 5           22 K.11                1377.           4     0.861            6       1.20    -0.861 4-4     
+# 6            7 K.12                1334.           4     0.864            6       1.18    -0.864 4-4   
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 ### Zoom to optimal number of classes
 index.table <- table_indices[table_indices$Index == "Calinski-Harbasz", ]
@@ -1827,8 +2123,6 @@ plot(1:30, 1:30, pch=19, cex=3, col=mypalette)
 mypalette <- mypalette[c(2,4,6,8,12,18,22,26,28)]
 mypalette <- c("#9D50A6","#177F97", "#2EC6AF","#0090BA","#A74F5A","#EF4868", "#F39B4C","cornsilk3", "#EDAA7D")
 
-library(dendsort)
-library(dendextend)
 
 viz.map.legend.pal <- function(kmodel, ### k-means model from ClusterR
                                manual, mypalette, ### If manual, provide the color palette (will not know to which class they are assigned)
@@ -2016,10 +2310,6 @@ summary(Soil.df.harmonised.PdGn)
 summary(BASONET.PdGn)
 BASONET.PdGn$Depth_interval <- ifelse(BASONET.PdGn$Upper_limit==0, "0-20 cm", "20-40 cm")
 
-### We have several years
-unique(BASONET.PdGn$Date)
-
-
 
 # 10.1. Electric conductivity ---------------------------------------------
 
@@ -2039,14 +2329,15 @@ ggplot(data=BASONET.PdGn[!is.na(BASONET.PdGn$EC) & !is.na(BASONET.PdGn$PdGn), ])
 
 BASONET.EC <- BASONET.PdGn[!is.na(BASONET.PdGn$EC) & !is.na(BASONET.PdGn$PdGn), ] %>%
   group_by(., PdGn, Depth_interval ) %>%
-  reframe(.,
-            EC.min = round(min(EC),2),
-            EC.q25 = round(quantile(EC,0.25),2),
-            EC.mean = round(mean(EC),2),
-            EC.q75 = round(quantile(EC,0.75),2),
-            EC.max = round(max(EC),2),
-            EC.sd = round(sd(EC),2),
+  summarize(.,
+            EC.min = round(min(EC),1),
+            EC.q25 = round(quantile(EC,0.25 ),1),
+            EC.mean = round(mean(EC),1),
+            EC.q75 = round(quantile(EC,0.75 ),1),
+            EC.max = round(max(EC),1),
+            EC.sd = round(sd(EC),1),
             count=n())
+
 
 
 
@@ -2062,10 +2353,11 @@ BASONET.PdGn$TOC_g_kg <- BASONET.PdGn$TOC *10
 BASONET.PdGn$Clay_g_kg <- BASONET.PdGn$Clay *10
 BASONET.PdGn$TOC_Clay <- BASONET.PdGn$TOC_g_kg / BASONET.PdGn$Clay_g_kg
 
+
 ggplot(data=BASONET.PdGn[!is.na(BASONET.PdGn$TOC) & 
                            !is.na(BASONET.PdGn$Clay) &
                            !is.na(BASONET.PdGn$PdGn), ]) +  
-  geom_boxplot(aes(x = as.factor(Date), y= TOC_Clay, fill=as.factor(PdGn))) +
+  geom_boxplot(aes(x = as.factor(PdGn), y= TOC_Clay, fill=as.factor(PdGn))) +
   ylab(label="TOC / Clay") +
   xlab(label="Soil district") +
   theme_bw() +
@@ -2076,59 +2368,28 @@ ggplot(data=BASONET.PdGn[!is.na(BASONET.PdGn$TOC) &
              color = "red",
              lwd = 1,  
              linetype = "dashed")+
-  ylim(0,0.4)
-
-ggplot(data=BASONET.PdGn[!is.na(BASONET.PdGn$TOC) & 
-                           !is.na(BASONET.PdGn$Clay) &
-                           !is.na(BASONET.PdGn$PdGn), ]) +  
-  geom_boxplot(aes(x = as.factor(Date), y= TOC_Clay, fill=Depth_interval)) +
-  ylab(label="TOC / Clay") +
-  xlab(label="Year and depth interval") +
-  theme_bw() +
-  geom_hline(yintercept =1/13,
-             color = "red",
-             lwd = 1,  
-             linetype = "dashed")+
-  ylim(0,0.5)
-
-
-
+  ylim(0,0.6)
 
 BASONET.PdGn$TOC_Clay_Healthy <- ifelse(BASONET.PdGn$TOC_Clay > 1/13, "healthy", "unhealthy")
 
-library(tidyverse)
-library(dplyr)
+
 BASONET.TOC_Clay <- BASONET.PdGn[!is.na(BASONET.PdGn$TOC_Clay) & !is.na(BASONET.PdGn$PdGn), ] %>%
-  group_by(Depth_interval, Date, PdGn) %>%
-  reframe(TOC_Clay.min = round(min(TOC_Clay, na.rm=TRUE),2),
+  group_by(., PdGn, Depth_interval ) %>%
+  summarize(.,
+            TOC_Clay.min = round(min(TOC_Clay, na.rm=TRUE),2),
             TOC_Clay.q25 = round(quantile(TOC_Clay,0.25, na.rm=TRUE ),2),
             TOC_Clay.mean = round(mean(TOC_Clay,na.rm=TRUE),2),
             TOC_Clay.q75 = round(quantile(TOC_Clay,0.75, na.rm=TRUE),2),
             TOC_Clay.max = round(max(TOC_Clay, na.rm=TRUE),2),
-            TOC_Clay.sd = round(sd(TOC_Clay, na.rm=TRUE),2))
+            TOC_Clay.sd = round(sd(TOC_Clay, na.rm=TRUE),2),
+            count=n())
 
-library(dplyr)
+
 BASONET.TOC_Clay.Health <- BASONET.PdGn[!is.na(BASONET.PdGn$TOC_Clay) & !is.na(BASONET.PdGn$PdGn), ] %>%
-  group_by(., Date, PdGn, Depth_interval, TOC_Clay_Healthy) %>%
-  reframe(TOC_Clay.mean = round(mean(TOC_Clay,na.rm=TRUE),2))
-
-ggplot(data=BASONET.TOC_Clay.Health) +  
-  geom_boxplot(aes(x = as.factor(Date), y= TOC_Clay.mean, fill=as.factor(TOC_Clay_Healthy))) +
-  ylab(label="TOC / Clay") +
-  xlab(label="Soil district") +
-  theme_bw() +
-  scale_fill_manual(values= map.PdGn.Comb26.k9$branch.centroids.ord$colors,
-                    name="Soil district")+ 
-  facet_wrap(~ Depth_interval) +
-  geom_hline(yintercept =1/13,
-             color = "red",
-             lwd = 1,  
-             linetype = "dashed")+
-  ylim(0,0.4)
-
-
-
-
+  group_by(., PdGn,Depth_interval, TOC_Clay_Healthy ) %>%
+  summarize(.,
+            TOC_Clay.mean = round(mean(TOC_Clay,na.rm=TRUE),2),
+            count=n())
 
 #BASONET.TOC_Clay.Health$count <- ifelse(is.na(BASONET.TOC_Clay.Health$count),0, BASONET.TOC_Clay.Health$count)
 
@@ -2237,11 +2498,11 @@ ggplot(data=BASONET.SubsoilCompaction.PdGn) +
   xlab(label="Soil district") +
   theme_bw() +
   scale_fill_manual(values= map.PdGn.Comb26.k9$branch.centroids.ord$colors,
-                    name="Soil district")  + 
-  facet_wrap(~ as.factor(PdGn))
+                    name="Soil district") # + 
+  #facet_wrap(~ as.factor(PdGn))
 BASONET.SubsoilCompaction.PdGn.summary <- BASONET.SubsoilCompaction.PdGn %>%
   group_by(., PdGn, Condition ) %>%
-  reframe(.,
+  summarize(.,
             BulkDensity.mean = round(mean(Bulk_Density,na.rm=TRUE),2),
             count=n())
 
@@ -2253,7 +2514,7 @@ BASONET.PdGn$P_mg_g <- BASONET.PdGn$P_ppm / 1000
 
 ggplot(data=BASONET.PdGn[!is.na(BASONET.PdGn$P_mg_g) & 
                            !is.na(BASONET.PdGn$PdGn), ]) +  
-  geom_boxplot(aes(x = as.factor(Date), y= P_mg_g, fill=as.factor(PdGn))) +
+  geom_boxplot(aes(x = as.factor(PdGn), y= P_mg_g, fill=as.factor(PdGn))) +
   ylab(label="Phosphorus (mg/g)") +
   xlab(label="Soil district") +
   theme_bw() +
@@ -2267,7 +2528,7 @@ BASONET.PdGn$N_mg_g <- BASONET.PdGn$TN_ppm / 1000
 
 ggplot(data=BASONET.PdGn[!is.na(BASONET.PdGn$N_mg_g) & 
                            !is.na(BASONET.PdGn$PdGn), ]) +  
-  geom_boxplot(aes(x = as.factor(Date), y= N_mg_g, fill=as.factor(PdGn))) +
+  geom_boxplot(aes(x = as.factor(PdGn), y= N_mg_g, fill=as.factor(PdGn))) +
   ylab(label="Nitrogen (mg/g)") +
   xlab(label="Soil district") +
   theme_bw() +
@@ -2279,7 +2540,7 @@ ggplot(data=BASONET.PdGn[!is.na(BASONET.PdGn$N_mg_g) &
 ### pH - without criteria
 ggplot(data=BASONET.PdGn[!is.na(BASONET.PdGn$pH) & 
                            !is.na(BASONET.PdGn$PdGn), ]) +  
-  geom_boxplot(aes(x = as.factor(Date), y= pH, fill=as.factor(PdGn))) +
+  geom_boxplot(aes(x = as.factor(PdGn), y= pH, fill=as.factor(PdGn))) +
   ylab(label="pH") +
   xlab(label="Soil district") +
   theme_bw() +
@@ -2311,14 +2572,12 @@ BASONET.PdGn.subset <- BASONET.PdGn[complete.cases(BASONET.PdGn[,c("PdGn","Depth
 Response <- BASONET.PdGn.subset[,c("Silt","Clay","pH","TOC",
                                    "TN_ppm","K_ppm","Ca_ppm", "Mg_ppm","CECef")]
 
-Response <- scale(Response,center=TRUE, scale=TRUE)
-
 ### PERMANOVA
 library(vegan)
 set.seed(1984)
 permanova.BASONET <- adonis2(Response ~ PdGn+Depth_interval,
                              data=BASONET.PdGn.subset,
-                             method = "mahalanobis", 
+                             method = "mahalanobis", by="terms",
                              permutations=9999)
 permanova.BASONET
 densityplot(permustats(permanova.BASONET))
@@ -2334,4 +2593,3 @@ plot(BASONET_disper)
 #      col= map.PdGn.Comb26.k9$branch.centroids.ord$colors[BASONET.PdGn.subset$PdGn])
 
 save.image("C:/Users/mercedes.roman/Desktop/SELVANS/WP1/R_output/6.SoilCondition/6.SoilCondition22032024.RData")
-load("C:/Users/mercedes.roman/Desktop/SELVANS/WP1/R_output/6.SoilCondition/6.SoilCondition22032024.RData")

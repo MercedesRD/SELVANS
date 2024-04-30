@@ -10,6 +10,8 @@
 ###  Author: Mercedes Roman Dobarco
 ###  Date: 15/02/2024
 
+### Mapping other pedogenon maps from the output of the modeling with the first scrpan options
+
 ####### Load packages
 ### Spatial
 library(sf)
@@ -25,12 +27,12 @@ library(viridis) # color palettes
 library(scales)
 library(rasterVis)
 library(gridExtra)
-library(rasterVis)
+#library(rasterVis)
 library(RColorBrewer)
-library(tmap)    # for static and interactive maps
+# library(tmap)    # for static and interactive maps
 library(leaflet) # for interactive maps
-library(mapview) # for interactive maps
-library(shiny)   # for web applications
+# library(mapview) # for interactive maps
+# library(shiny)   # for web applications
 
 ###Data carpentry
 library(dplyr)
@@ -64,19 +66,19 @@ source("C:/Users/mercedes.roman/Desktop/SELVANS/WP1/R_scripts/Euskadi/5.Pedogeno
 ### something between 2 to 140 classes
 search_space <- c(2:140)
 
-# ### 2. Selection of SCORPAN variables --------------------------------------
+### 2. Selection of SCORPAN variables --------------------------------------
 
 ### Number of variables per soil-forming factor:
 ### Soil variables: clay/silt, clay/sand, silt/sand, CEC - between 2-3
-### the spatial patterns of the SoilGrids mapsdiffered considerably from the 
+### the spatial patterns of the SoilGrids mapsdiffered considerably from the
 ### texture maps elaborated by the Basque Government in 2019, at a smaller resolution and produced
-### with a regional dataset. 
+### with a regional dataset.
 ### The particle size fractions and SOC stock maps for the 0-30 cm depth interval were produced with
-### around 12,000 observationsand covariates of parent material, land use, climate, and relief, following 
-### a digital soil mapping approach and scorpan modeling. 
+### around 12,000 observationsand covariates of parent material, land use, climate, and relief, following
+### a digital soil mapping approach and scorpan modeling.
 ### (https://www.euskadi.eus/mapa-de-existencias-de-carbono-y-mapa-de-textura-para-los-suelos-de-la-capv/web01-a2inglur/es/)
 
-### Climate = 5 variables selected from correlation plots 
+### Climate = 5 variables selected from correlation plots
 ### and variable importance for predicting soil properties
 setwd("C:/Users/mercedes.roman/Desktop/SELVANS/WP1/R_output/4.CovariateSelection/scaled/")
 clim.vars <- c("clim_bio1.tif","clim_bio4.tif","clim_bio5.tif","clim_bio12.tif","clim_bio15.tif")
@@ -88,13 +90,13 @@ setwd("C:/Users/mercedes.roman/Desktop/SELVANS/WP1/R_output/4.CovariateSelection
 relief.fixed <- c("relief_dem.tif")
 #dem <- rast(relief.fixed)
 
-### Variables that logically limit soil CAPACITY for performing functions 
+### Variables that logically limit soil CAPACITY for performing functions
 ### and their resilience to disturbance:
 relief.potential <-list.files(pattern="relief")
 relief.potential <- c("relief_slope.tif","relief_slope_5.tif","relief_slope_10.tif", # slope
                       "relief_northerness.tif","relief_easterness.tif",  ### aspect
                       "relief_north_slope.tif", ### aspect x slope. This variable is correlated with northness so we may want to keep one of both
-                      "relief_twi.tif","relief_mrrtf.tif","relief_mrvbf.tif", # my preferred is TWI 
+                      "relief_twi.tif","relief_mrrtf.tif","relief_mrvbf.tif", # my preferred is TWI
                       "relief_valley_depth.tif","relief_st_height.tif", # Preferred hydrological variables
                       "relief_mid_slope.tif","relief_norm_height.tif","relief_slope_height.tif", ### Other hydrological variables
                       "relief_p_curv.tif", "relief_pr_curv_5.tif", "relief_pr_curv_10.tif", # profile curvature (3,5,10)
@@ -124,10 +126,10 @@ scorpan <- c(clim.r, vegetation.r, relief.r, parentmaterial.r)
 ### 2.a Take sample
 ### Regular sample
 set.seed(2233)
-scorpanSample <- terra::spatSample(x = scorpan, 
+scorpanSample <- terra::spatSample(x = scorpan,
                                    size=50000,
-                                   method="regular", 
-                                   as.df=TRUE, 
+                                   method="regular",
+                                   as.df=TRUE,
                                    xy=TRUE)
 ### Only complete cases
 scorpanSample <- scorpanSample[complete.cases(scorpanSample),]
@@ -148,7 +150,7 @@ load("C:/Users/mercedes.roman/Desktop/SELVANS/WP1/R_output/1.SoilDatasets/SoilDa
 ### Think if I want to use newID or just myID - all years? just 2021?
 ### Same for LUCAS - subset one year?
 
-### Transform soil_datasets_3 to spatial, extracting only BASONET data for either 
+### Transform soil_datasets_3 to spatial, extracting only BASONET data for either
 ### for 2001 (but coordinates may not be entirely correct)
 ### or 2021 (coordinates are correct but I don´t know if I put the texture data too)
 BASONET.soil <- soil_datasets_3[soil_datasets_3$Dataset== "BASONET",]
@@ -175,7 +177,7 @@ summary(BASONET.scorpan)
 unique(Soil.df.harmonised.scorpan[Soil.df.harmonised.scorpan$Dataset =="LUCAS" & !is.na(Soil.df.harmonised.scorpan$Silt),]$Date)
 
 ### For BASONET, let´s use 2021 in terms of coordinates, they are more accurate
-unique(BASONET.scorpan[!is.na(BASONET.scorpan$Silt),]$Date) 
+unique(BASONET.scorpan[!is.na(BASONET.scorpan$Silt),]$Date)
 ### Texture has been duplicated in 2021, no problem
 
 ### I exclude BASONET 2001 from both datasets to eliminate duplicity for texture on Pedogenon centroids
@@ -194,20 +196,20 @@ library(Hmisc)
 library(corrplot)
 Soil.df.harmonised.scorpan[,c("Sand","Silt","Clay","pH","TOC")] %>%
   cor(., use = "pairwise.complete.obs") %>%
-  corrplot.mixed(.,upper = "ellipse", 
-                 lower = "number", 
+  corrplot.mixed(.,upper = "ellipse",
+                 lower = "number",
                  number.cex=0.7, tl.cex=0.6, tl.col = "black")
 
 BASONET.scorpan[,c("Sand","Silt","Clay","CECef",
-                   "TOC","Carbonates","pH","EC",               
+                   "TOC","Carbonates","pH","EC",
                    "TN_ppm","P_ppm","K_ppm",
                    "Ca_ppm","Mg_ppm","Na_ppm")] %>%
   cor(., use = "pairwise.complete.obs") %>%
-  corrplot.mixed(.,upper = "ellipse", 
+  corrplot.mixed(.,upper = "ellipse",
                  order = 'hclust',
-                 lower = "number", 
-                 number.cex=0.7, 
-                 tl.cex=0.6, 
+                 lower = "number",
+                 number.cex=0.7,
+                 tl.cex=0.6,
                  tl.col = "black")
 
 ### Do not use P_ppm, Na_ppm, Mg_ppm because there are a lot of missing observations
@@ -254,7 +256,7 @@ relief.potential.10 <-  c("r_slope_10",
                          "r_norm_height","r_slope_height",
                          "r_pr_curv_10","r_pl_curv_10","r_lg_curv_10","r_cs_curv_10",
                          "r_tpi_8_3")
-  
+
 ### n=4
 ### I start from my subset of preferred variables
 combn.4.relief <- utils::combn(x=relief.preferred, m = 4)
@@ -309,471 +311,471 @@ tmpFiles(current = FALSE,orphan = TRUE,old = TRUE,remove = TRUE)
 
 ### some did not finished running...
 #relief.combi <- relief.combi[c(27:38),]
-
-
-
-### 3. For each combination of relief covariates:
-
-kquality_combi_list <- list() ### List with the dataframes of internal quality and soil-profile derived indices
-
-#icq_df_combi_list <- list() ### this list will store the internal clustering quality indices
-### for each combination of environmental covariates
-
-#BASONET_df_combi_list <- list() ### this list will store the soil profile indices - 
-### Only BASONET 2021 data
-### for each combination of environmental covariates
-
-#SoilHarmonised_df_combi_list <- list() ### this list will store the soil profile indices 
-### All datasets
-### for each combination of environmental covariates
-
-#cluster_assignment_combi_list <- list() ### this list will store the dataframe for combination j,
-### with all the cluster assignments from the search space
-
-### List to store the dataframes with BASONET and HARMONISED soil datasets cluster assignments for different j combinations
-BASONET.dfs <- list()
-HARMONISED.dfs <- list()
-
-### Create a for loop to test the different metrics with different soil datasets
-#j <- 5
-
-for(j in 1:nrow(relief.combi)) { 
-  setwd(OutDir)
-  dir.create(paste0("scorpan_combi_",j))
-  }
-
 # 
-# cl <- makePSOCKcluster(20) # I defined cl by this commend
+# 
+# 
+# ### 3. For each combination of relief covariates:
+# 
+# kquality_combi_list <- list() ### List with the dataframes of internal quality and soil-profile derived indices
+# 
+# #icq_df_combi_list <- list() ### this list will store the internal clustering quality indices
+# ### for each combination of environmental covariates
+# 
+# #BASONET_df_combi_list <- list() ### this list will store the soil profile indices - 
+# ### Only BASONET 2021 data
+# ### for each combination of environmental covariates
+# 
+# #SoilHarmonised_df_combi_list <- list() ### this list will store the soil profile indices 
+# ### All datasets
+# ### for each combination of environmental covariates
+# 
+# #cluster_assignment_combi_list <- list() ### this list will store the dataframe for combination j,
+# ### with all the cluster assignments from the search space
+# 
+# ### List to store the dataframes with BASONET and HARMONISED soil datasets cluster assignments for different j combinations
+# BASONET.dfs <- list()
+# HARMONISED.dfs <- list()
+# 
+# ### Create a for loop to test the different metrics with different soil datasets
+# #j <- 5
+# 
+# for(j in 1:nrow(relief.combi)) { 
+#   setwd(OutDir)
+#   dir.create(paste0("scorpan_combi_",j))
+#   }
+# 
+# # 
+# # cl <- makePSOCKcluster(20) # I defined cl by this commend
+# # registerDoParallel(cl)
+# # clusterExport(cl, varlist = c("terra","ClusterR", "clusterSim","lowmemtkmeans", "tidyverse","dplyr"))
+# # clusterEvalQ(cl, .libPaths("~/C:/Users/mercedes.roman/AppData/Local/R/win-library/4.3")) # pass libpath
+# # clusterEvalQ(cl, library(ClusterR)) # pass My package which includes Rcpp functions
+# # stopCluster(cl)
+# # print("FinishCL")# for testing that cl works
+# library(doParallel)
+# library(foreach)
+# 
+# tic <- Sys.time()
+# detectCores()
+# cl <- makeCluster(12)   ###
 # registerDoParallel(cl)
-# clusterExport(cl, varlist = c("terra","ClusterR", "clusterSim","lowmemtkmeans", "tidyverse","dplyr"))
-# clusterEvalQ(cl, .libPaths("~/C:/Users/mercedes.roman/AppData/Local/R/win-library/4.3")) # pass libpath
-# clusterEvalQ(cl, library(ClusterR)) # pass My package which includes Rcpp functions
+# getDoParWorkers()
+# 
+# kquality_scorpan_combis <- foreach(j = 1:nrow(relief.combi),
+#                                    .packages=c("terra","ClusterR", "clusterSim","lowmemtkmeans", "tidyverse","dplyr"),
+#                                    .export = c("OutDir", "fixed.columns","relief.combi",
+#                                                "relief.combi.df", "relief.combi.v",
+#                                                "scorpanSample", "BASONET.scorpan", "search_space",
+#                                                "Soil.df.harmonised.scorpan","Dintra.function", "Dinter.function")) %dopar% { 
+#   
+# #for(j in 1:nrow(relief.combi)) {
+#   
+# # ### a. SCORPAN sample, input for clustering for this combination --------
+# 
+#   ### a. SCORPAN sample, input for clustering for this combination of covariates
+#   setwd(paste0(OutDir,"scorpan_combi_",j,"/"))
+#   print(paste0("Working on scorpan combination ",j))
+#   
+#   ### Subset variables in scorpan dataset
+#   #fixed.columns <- c(names(clim.r), names(vegetation.r), "r_dem", names(parentmaterial.r))
+#   var.columns <- c(t(relief.combi)[,j])
+#   var.columns <- var.columns[!is.na(var.columns)] ### eliminate NA if any
+#   
+#   ### scorpan dataframe for the combination j
+#   scorpanSample.j <- scorpanSample[,c(fixed.columns,var.columns)]
+#   
+#   ### a.1 Perform Cholesky transformation to decorrelate the data
+#   
+#   # The basic Euclidean distance treats each variable as equally important in calculating the distance.
+#   # An alternative approach is to scale the contribution of individual variables to the distance value according
+#   # to the variability of each variable. This approach is illustrated by the Mahalanobis distance, 
+#   # which is a measure of the distance between each observation in a multidimensional cloud of points and
+#   # the centroid of the cloud.
+#   ### Calculate the Mahalanobis distance, as Euclidean distance after applying the Cholesky decomposition
+#   
+#   # # Rescale the data
+#   C.j <- chol(var(as.matrix(scorpanSample.j)))
+#   scorpanSample.j.rs <- as.matrix(scorpanSample.j) %*% solve(C.j)
+#   
+#   ### Output of transformation of the sampled scorpan dataset for variable combination j: scorpanSample.j.rs
+#   # scorpanSample.j.rs
+#   ### Variance-Covariance matrix of the scorpan dataset for variable combination j: C.j
+#   # C.j
+#   
+#   ### I may be better working with arrays (ncombiJ x nIndices x search_space_K). 
+#   ### Dataframe to store the results of the clustering - internal quality indices
+#   ### These will be the results for this variable combination
+#   out.clustering.indices <- as.data.frame(matrix(data=NA, ncol=length(search_space)+1, nrow= 5))
+#   colnames(out.clustering.indices) <- c("Index", paste0("K.",search_space))
+#   #out.clustering.indices$Index <- c("Total SSE", "Sum WCSE","BetweenSS to TotalSS","Calinski-Harbasz","Silhouette","BIC")
+#   out.clustering.indices$Index <- c("Total SSE", "Sum WCSE","BetweenSS to TotalSS","Calinski-Harbasz","BIC")
+# 
+# #   ### b. JUST BASONET - 430 sites ---------------------------------------
+# 
+#   
+#   ### b. JUST BASONET - 430 sites
+#   ### N = 430 soil profiles with 1 or 2 horizons
+#   
+#   ### copy the soil dataframe
+#   BASONET.scorpan.j <- as.data.frame(BASONET.scorpan)
+#   
+#   ### Columns to store cluster assignment
+#   kassignments <- as.data.frame(matrix(data=NA,
+#                                        nrow=nrow(BASONET.scorpan.j),
+#                                        ncol = length(search_space)))
+#   colnames(kassignments) <- paste0("K.",search_space)
+#   knames <- paste0("K.",search_space)
+#   BASONET.scorpan.j <- cbind(BASONET.scorpan.j, kassignments)
+#   rm(kassignments)
+#   
+#   ### Now decorrelate the SCORPAN variables at the locations of the soil observations
+#   ### scorpan variables corresponding to combination j
+#   B.scorpan.j <- BASONET.scorpan.j[,c(fixed.columns,var.columns)]
+#   ### Rescale the data
+#   B.scorpan.j.rs <- as.matrix(B.scorpan.j) %*% solve(C.j)
+#   
+#   ### Dataframe to store output quality indices
+#   
+#   ### I may be better working with arrays (ncombiJ x nIndices x search_space_K). 
+#   ### Dataframe to store the results of the clustering - soil data profile indicators - BASONET
+#   ### These will be the results for this variable combination
+#   out.indices.BASONET <- as.data.frame(matrix(data=NA, ncol=length(search_space)+1, nrow= 6))
+#   colnames(out.indices.BASONET) <- c("Index",paste0("K.",search_space))
+#   out.indices.BASONET$Index <- c("B_N_PdGn_sites", # Number of pedogenons with any soil observation
+#                                  "B_Perc_PdGn_sites", ## What percentage of the number of classes do have observations?
+#                                  "B_Min_sites", # Min number of observations per pedogenon (of those with any)
+#                                  "B_Median_sites", # Median number of observations per pedogenon (of those with any)
+#                                  "B_Max_sites", # Min number of observations per pedogenon (of those with any)
+#                                  "B_Din_Dex" # Ratio of SOIL PROFILE intra cluster distance to between cluster distance
+#                                  ### Din is average distance from each observation to the centroid of the cluster
+#                                  ### Dex is the average distance between cluster centroids
+#                                  )
+#   
+# #   ###  c. ALL DATASETS -  -----------------------------------------------
+# 
+#   ###  c. ALL DATASETS - 
+#   
+#   ### copy the soil dataframe
+#   Soil.df.harmonised.scorpan.j <- as.data.frame(Soil.df.harmonised.scorpan)
+#   
+#   ### Columns to store cluster assignment
+#   kassignments <- as.data.frame(matrix(data=NA,
+#                                        nrow=nrow(Soil.df.harmonised.scorpan.j),
+#                                        ncol = length(search_space)))
+#   colnames(kassignments) <- paste0("K.",search_space)
+#   knames <- paste0("K.",search_space)
+#   Soil.df.harmonised.scorpan.j <- cbind(Soil.df.harmonised.scorpan.j, kassignments)
+#   rm(kassignments)
+#   
+#   ### Now decorrelate the SCORPAN variables at the locations of the soil observations
+#   ### scorpan variables corresponding to combination j
+#   SH.scorpan.j <- Soil.df.harmonised.scorpan.j[,c(fixed.columns,var.columns)]
+#   ### Rescale the data
+#   SH.scorpan.j.rs <- as.matrix(SH.scorpan.j) %*% solve(C.j)
+#   
+#   ### I may be better working with arrays (ncombiJ x nIndices x search_space_K). 
+#   ### Dataframe to store the results of the clustering - soil data profile indicators - 
+#   ### subset of selected properties within pedogenon: sand, silt, clay, TOC, pH, Mg, Ca, K, N
+#   ### These will be the results for this variable combination
+#   out.indices.SoilHarmonised <- as.data.frame(matrix(data=NA, ncol=length(search_space)+1, nrow= 6))
+#   colnames(out.indices.SoilHarmonised) <- c("Index",paste0("K.",search_space))
+#   out.indices.SoilHarmonised$Index <- c("SH_N_PdGn_sites", # Number of pedogenons with any soil observation
+#                                         "SH_Perc_PdGn_sites", ## What percentage of the number of classes do have observations?
+#                                         "SH_Min_sites", # Min number of observations per pedogenon (of those with any)
+#                                         "SH_Median_sites", # Median number of observations per pedogenon (of those with any)
+#                                         "SH_Max_sites", # Min number of observations per pedogenon (of those with any)
+#                                         "SH_Din_Dex") # Ratio of SOIL PROFILE intra cluster distance to between cluster distance
+#   ### Din is average distance from each observation to the centroid of the cluster
+#   ### Dex is the average distance between cluster centroids
+#  
+#   setwd(paste0(OutDir,"scorpan_combi_",j,"/"))
+#   gc()
+# 
+# #   ### 4. for each k in the search space, search_space: ------------------
+# 
+#   ### 4. for each k in the search space, search_space:
+#   #k <- 30
+#  for( k in 1:length(search_space)){
+#     
+#    print(paste0("Calculating indices for k=",search_space[[k]]))
+#     
+#     ### Note, I can repeat this step 30 or 100 times (or as many as I want)
+#     ### by changing the seed for clustering, to obtain median estimates of the clustering indices
+#     
+#     ### 4.a Run k-means clustering and calculate
+#     set.seed(1990)
+#     kmeans_clorpt.jk <- ClusterR::KMeans_rcpp(scorpanSample.j.rs, 
+#                                               clusters = search_space[[k]], 
+#                                               num_init = 20, 
+#                                               max_iters = 10000,
+#                                               fuzzy = FALSE,
+#                                               initializer = 'kmeans++', 
+#                                               verbose = F)
+#     
+#     ### 4.b total SSE, sum of within cluster SE, between-cluster SSE / total SSE
+#     ### Output from function ClusterR::KMeans_rcpp
+#     Tot_SSE_jk <- kmeans_clorpt.jk$total_SSE
+#     sumWCSE_jk <- sum(kmeans_clorpt.jk$WCSS_per_cluster,na.rm=TRUE)   
+#     Btwcse_jk <- kmeans_clorpt.jk$between.SS_DIV_total.SS
+#     
+#     ### 4.c Internal cluster quality indices like:
+#     
+#     require(clusterSim)
+#     ### - Calinski-Harbasz 
+#     icqG1.jk <- clusterSim::index.G1(x=scorpanSample.j.rs,
+#                                      cl=kmeans_clorpt.jk$clusters, 
+#                                      centrotypes="centroids")
+#     
+#     ### - Silhouette - This is very memory demanding, so I use a subset of the data of 20,000 observations
+#     # icqS.jk <- clusterSim::index.S(d=dist(scorpanSample.j.rs), 
+#     #                                cl=kmeans_clorpt.jk$clusters)
+#     
+#     ### - Bayesian information criterion to penalize larger number of clusters (cluster_BIC {lowmemtkmeans})
+#     require(lowmemtkmeans)
+#     BIC.jk <- lowmemtkmeans::cluster_BIC(data=as.matrix(scorpanSample.j.rs),
+#                                          centres=as.matrix(kmeans_clorpt.jk$centroids))
+#     
+#     ### 4.d Store the results of the clustering indices
+#     #out.clustering.indices[,k+1] <- c(Tot_SSE_jk,sumWCSE_jk,Btwcse_jk,icqG1.jk,icqS.jk,BIC.jk)
+#     out.clustering.indices[,k+1] <- c(Tot_SSE_jk,sumWCSE_jk,Btwcse_jk,icqG1.jk,BIC.jk)
+#     
+#     # Save the k-means model and centroids
+#     save(kmeans_clorpt.jk, file=paste0(OutDir,"scorpan_combi_",j,"/kmeans_scorpanID",j,".k",search_space[[k]],".RData"))
+#     gc()
+#     
+# # ### 5. Predict cluster assignment to soil profiles BASONET--------
+# 
+#     ### 5. Predict cluster assignment to soil properties observations - BASONET dataset:
+#     
+#     ### Extract the index of the dataframe rows that are na/nan/Inf
+#     df.na <- which(apply(B.scorpan.j.rs, 
+#                          MARGIN = 1, 
+#                          FUN = function(x) {any(is.na(x))}))
+#     
+#     if(length(df.na) ==0) {
+#       
+#     ### Predict cluster assignment - BASONET
+#     cluster  <- predict_KMeans(data = B.scorpan.j.rs, CENTROIDS = kmeans_clorpt.jk$centroids)
+#     ### Assign to the dataframe with soil observations
+#     BASONET.scorpan.j[,knames[[k]]] <- cluster
+#     
+#     } else if (length(df.na) > 0) {
+#       
+#       cluster  <- predict_KMeans(data = B.scorpan.j.rs[-df.na,], CENTROIDS = kmeans_clorpt.jk$centroids)
+#       BASONET.scorpan.j[-df.na, knames[[k]]] <- cluster
+#       
+#     }
+#     
+#     ### 6. Summarise number of observations per cluster: average, min and max.
+#     ### Here I only use observations from 2021, so there is no problem of double counting same coordinates and different years
+#     
+#     ### 6.a Subset of soil properties, those "more stable" - for BASONET, I decided (seeing also the correlation plots)
+#     target.vars.BASONET <- c("Silt","Clay","CECef")
+#     
+#     ### Create the variable "Layer_depth"
+#     BASONET.scorpan.j$Layer_depth <- ifelse(BASONET.scorpan.j$Lower_limit == 19, "000_020_cm", "020_040_cm" )
+#     
+#     ### subset data for the Dintra and Dinter calculations
+#     Soil.df.BASONET <- BASONET.scorpan.j[,c("newID","Dataset","Layer_depth","Date", ### In this case either newID or myID design unique location
+#                                             knames[[k]],
+#                                             target.vars.BASONET)]
+#     
+#     ### Change name of pedogenon column
+#     colnames(Soil.df.BASONET)[colnames(Soil.df.BASONET) ==knames[[k]]] <- "PdGn"
+#     
+#     ### Subset only complete observations
+#     Soil.df.BASONET <- Soil.df.BASONET[complete.cases(Soil.df.BASONET),]
+#     
+#     ### Number of observations per pedogenon? Individual locations (unique coordinates + date)
+#     ### subset only one year for BASONET and LUCAS - Done
+#     summary.PdGn.BASONET <- Soil.df.BASONET[,c("newID","PdGn")] %>% distinct(.,newID,PdGn) %>% count(., PdGn)
+#     
+#     #out.indices.BASONET$Index 
+#     #hist(summary.PdGn.BASONET$n, breaks=20)
+#     ### How many of the pedogenons have any observation?
+#     B_N_PdGn_sites <- length(unique(summary.PdGn.BASONET$PdGn))
+#     ### What percentage does this represent from all the classes?
+#     B_Perc_PdGn_sites <- round(B_N_PdGn_sites/search_space[[k]]*100, digits=1)
+#     B_Min_sites <- min(summary.PdGn.BASONET$n)
+#     B_Median_sites <- median(summary.PdGn.BASONET$n)
+#     B_Max_sites <- max(summary.PdGn.BASONET$n)
+#     
+# 
+# # 5.b Dintra/Dinter BASONET -----------------------------------------------
+# 
+#     
+#     ### 6.b Din/Dex
+#     ### Din is average distance from each observation to the centroid of its cluster
+#     ### Dex is the average distance between cluster centroids
+#     ### Calculate with functions from "5.PedogenonModeling_helper.R"
+#     
+#     BASONET.DF.intra <- Dintra.function(df.soil = Soil.df.BASONET,
+#                                       uniqueID = "newID",
+#                                       depth.var = "Layer_depth",
+#                                       target.vars = target.vars.BASONET)
+#     
+#     ### Average Distance between each observation to their centroid.
+#     Dintra.BASONET <- mean(BASONET.DF.intra$dist_to_centroid, na.rm=TRUE) 
+#   
+#     
+#     BASONET.DF.inter <- Dinter.function(df.soil = Soil.df.BASONET,
+#                                         uniqueID = "newID",
+#                                         depth.var = "Layer_depth",
+#                                         target.vars = target.vars.BASONET)
+#     
+#     ### Calculate average distance between centroids.
+#     ### These are the distances between centroids.
+#     Dinter.BASONET <- mean(BASONET.DF.inter, na.rm=TRUE)
+#     
+#     ### Ratio Din to Dex
+#     Din_Dex_BASONET <- Dintra.BASONET/Dinter.BASONET
+#     
+#     ### Store the results of the soil profile distances indices
+#     out.indices.BASONET[,k+1] <- c(round(B_N_PdGn_sites, digits=0),
+#                                    round(B_Perc_PdGn_sites, digits=1),
+#                                    round(B_Min_sites, digits=0),
+#                                    round(B_Median_sites, digits=0),
+#                                    round(B_Max_sites, digits=0),
+#                                    round(Din_Dex_BASONET, digits=3))
+#     
+#     gc()
+#                                   
+#     
+# # ### 6. Predict cluster assignment to soil profiles HARMONISED DATASET--------
+#     
+#     ### 6. Predict cluster assignment to soil properties observations - HARMONISED dataset:
+#     
+#     ### Extract the index of the dataframe rows that are na/nan/Inf
+#     df.na <- which(apply(SH.scorpan.j.rs, 
+#                          MARGIN = 1, 
+#                          FUN = function(x) {any(is.na(x))}))
+#     
+#     if(length(df.na) ==0) {
+#       
+#       ### Predict cluster assignment - HARMONISED
+#       cluster  <- predict_KMeans(data = SH.scorpan.j.rs, CENTROIDS = kmeans_clorpt.jk$centroids)
+#       
+#       ### Assign to the dataframe with soil observations
+#       Soil.df.harmonised.scorpan.j[,knames[[k]]] <- cluster
+#       
+#     } else if (length(df.na) > 0) {
+#       
+#       cluster  <- predict_KMeans(data = SH.scorpan.j.rs[-df.na,], CENTROIDS = kmeans_clorpt.jk$centroids)
+#       Soil.df.harmonised.scorpan.j[-df.na, knames[[k]]] <- cluster
+#       
+#     }
+#     
+#     ### 6. Summarise number of observations per cluster: average, min and max.
+#     ### Here I only use observations from 2021, so there is no problem of double counting same coordinates and different years
+#     ### and because I require soil texture, only LUCAS 2009 is taken into account
+#     
+#     ### 6.a Subset of soil properties, those with more observations 
+#     target.vars.HARMONISED <- c("Silt","Clay","TOC","pH")
+#   
+#     ### subset data for the Dintra and Dinter calculations
+#     Soil.df.HARMONISED <- Soil.df.harmonised.scorpan.j[,c("newID","Dataset","Layer_depth","Date",
+#                                                           ### In this case either newID or myID design unique location
+#                                                           knames[[k]],
+#                                                           target.vars.HARMONISED)]
+#     
+#     ### Change name of pedogenon column
+#     colnames(Soil.df.HARMONISED)[colnames(Soil.df.HARMONISED) ==knames[[k]]] <- "PdGn"
+#     
+#     ### Subset only complete observations
+#     Soil.df.HARMONISED <- Soil.df.HARMONISED[complete.cases(Soil.df.HARMONISED),]
+#     
+#     ### Number of observations per pedogenon? Individual locations (unique coordinates + date)
+#     ### subset only one year for BASONET and LUCAS - Done
+#     summary.PdGn.HARMONISED <- Soil.df.HARMONISED[,c("newID","PdGn")] %>% distinct(.,newID,PdGn) %>% count(., PdGn)
+#     
+#     #out.indices.SoilHarmonised$Index 
+#     #hist(summary.PdGn.BASONET$n, breaks=20)
+#     ### How many of the pedogenons have any observation?
+#     SH_N_PdGn_sites <- length(unique(summary.PdGn.HARMONISED$PdGn))
+#     ### What percentage does this represent from all the classes?
+#     SH_Perc_PdGn_sites <- round(SH_N_PdGn_sites/search_space[[k]]*100, digits=1)
+#     SH_Min_sites <- min(summary.PdGn.HARMONISED$n)
+#     SH_Median_sites <- median(summary.PdGn.HARMONISED$n)
+#     SH_Max_sites <- max(summary.PdGn.HARMONISED$n)
+#     
+#     
+#     # 6.b Dintra/Dinter HARMONISED -----------------------------------------------
+#     
+#     
+#     ### 6.b Din/Dex
+#     ### Din is average distance from each observation to the centroid of its cluster
+#     ### Dex is the average distance between cluster centroids
+#     ### Calculate with functions from "5.PedogenonModeling_helper.R"
+#     
+#     # centroids.test <- centroids.SoilVars.Pedogenon.fun(df.soil =Soil.df.HARMONISED,
+#     #                                                    depth.var = "Layer_depth",
+#     #                                                    target.vars = target.vars.HARMONISED  )
+#     
+#     ### DEBUG THIS FUNCTION
+#     HARMONISED.DF.intra <- Dintra.function(df.soil = Soil.df.HARMONISED,
+#                                         uniqueID = "newID",
+#                                         depth.var = "Layer_depth",
+#                                         target.vars = target.vars.HARMONISED)
+#     
+#     ### Average Distance between each observation to their centroid.
+#     Dintra.HARMONISED <- mean(HARMONISED.DF.intra$dist_to_centroid, na.rm=TRUE) 
+#     
+#     
+#     HARMONISED.DF.inter <- Dinter.function(df.soil = Soil.df.HARMONISED,
+#                                         uniqueID = "newID",
+#                                         depth.var = "Layer_depth",
+#                                         target.vars = target.vars.HARMONISED)
+#     
+#     ### Calculate average distance between centroids.
+#     ### These are the distances between centroids.
+#     Dinter.HARMONISED <- mean(HARMONISED.DF.inter, na.rm=TRUE)
+#     
+#     ### Ratio Din to Dex
+#     Din_Dex_HARMONISED <- Dintra.HARMONISED/Dinter.HARMONISED
+#     
+#     ### Store the results of the soil profile distances indices
+#     out.indices.SoilHarmonised[,k+1] <- c(round(SH_N_PdGn_sites, digits=0),
+#                                    round(SH_Perc_PdGn_sites, digits=1),
+#                                    round(SH_Min_sites, digits=0),
+#                                    round(SH_Median_sites, digits=0),
+#                                    round(SH_Max_sites, digits=0),
+#                                    round(Din_Dex_HARMONISED, digits=3))  
+#     gc()
+#     
+#   }
+#   
+#   ### Now we run through all the K
+#   ### Store the results in the same dataframe
+#   indices.j <- rbind(out.clustering.indices,out.indices.BASONET,out.indices.SoilHarmonised)
+#   
+#   ### Write csv file in case foreach crashes
+#   write.csv(indices.j, file = paste0(OutDir,"scorpan_combi_",j,"/cl_indices_comb",j,".csv"))
+#   
+#   ### Keep in a list outside the loop
+#   kquality_combi_list[[j]] <- indices.j
+#   
+#   ### Export BASONET dataframe with cluster assignments
+#   BASONET.dfs[[j]] <- BASONET.scorpan.j
+#   write.csv(BASONET.scorpan.j, file = paste0(OutDir,"scorpan_combi_",j,"/BASONET_assign_",j,".csv"))
+#   
+#   ### Export harmonised soil dataframe with cluster assignments
+#   HARMONISED.dfs[[j]] <- Soil.df.harmonised.scorpan.j
+#   write.csv(Soil.df.harmonised.scorpan.j, file = paste0(OutDir,"scorpan_combi_",j,"/HARMONISED_assign_",j,".csv"))
+#   
+#   tmpFiles(current = FALSE, orphan = TRUE, old = TRUE, remove = TRUE)
+#   gc()
+#   
+#   indices.j ### We return this
+#  
+# 
+# }
+# 
 # stopCluster(cl)
-# print("FinishCL")# for testing that cl works
-library(doParallel)
-library(foreach)
-
-tic <- Sys.time()
-detectCores()
-cl <- makeCluster(12)   ###
-registerDoParallel(cl)
-getDoParWorkers()
-
-kquality_scorpan_combis <- foreach(j = 1:nrow(relief.combi),
-                                   .packages=c("terra","ClusterR", "clusterSim","lowmemtkmeans", "tidyverse","dplyr"),
-                                   .export = c("OutDir", "fixed.columns","relief.combi",
-                                               "relief.combi.df", "relief.combi.v",
-                                               "scorpanSample", "BASONET.scorpan", "search_space",
-                                               "Soil.df.harmonised.scorpan","Dintra.function", "Dinter.function")) %dopar% { 
-  
-#for(j in 1:nrow(relief.combi)) {
-  
-# ### a. SCORPAN sample, input for clustering for this combination --------
-
-  ### a. SCORPAN sample, input for clustering for this combination of covariates
-  setwd(paste0(OutDir,"scorpan_combi_",j,"/"))
-  print(paste0("Working on scorpan combination ",j))
-  
-  ### Subset variables in scorpan dataset
-  #fixed.columns <- c(names(clim.r), names(vegetation.r), "r_dem", names(parentmaterial.r))
-  var.columns <- c(t(relief.combi)[,j])
-  var.columns <- var.columns[!is.na(var.columns)] ### eliminate NA if any
-  
-  ### scorpan dataframe for the combination j
-  scorpanSample.j <- scorpanSample[,c(fixed.columns,var.columns)]
-  
-  ### a.1 Perform Cholesky transformation to decorrelate the data
-  
-  # The basic Euclidean distance treats each variable as equally important in calculating the distance.
-  # An alternative approach is to scale the contribution of individual variables to the distance value according
-  # to the variability of each variable. This approach is illustrated by the Mahalanobis distance, 
-  # which is a measure of the distance between each observation in a multidimensional cloud of points and
-  # the centroid of the cloud.
-  ### Calculate the Mahalanobis distance, as Euclidean distance after applying the Cholesky decomposition
-  
-  # # Rescale the data
-  C.j <- chol(var(as.matrix(scorpanSample.j)))
-  scorpanSample.j.rs <- as.matrix(scorpanSample.j) %*% solve(C.j)
-  
-  ### Output of transformation of the sampled scorpan dataset for variable combination j: scorpanSample.j.rs
-  # scorpanSample.j.rs
-  ### Variance-Covariance matrix of the scorpan dataset for variable combination j: C.j
-  # C.j
-  
-  ### I may be better working with arrays (ncombiJ x nIndices x search_space_K). 
-  ### Dataframe to store the results of the clustering - internal quality indices
-  ### These will be the results for this variable combination
-  out.clustering.indices <- as.data.frame(matrix(data=NA, ncol=length(search_space)+1, nrow= 5))
-  colnames(out.clustering.indices) <- c("Index", paste0("K.",search_space))
-  #out.clustering.indices$Index <- c("Total SSE", "Sum WCSE","BetweenSS to TotalSS","Calinski-Harbasz","Silhouette","BIC")
-  out.clustering.indices$Index <- c("Total SSE", "Sum WCSE","BetweenSS to TotalSS","Calinski-Harbasz","BIC")
-
-#   ### b. JUST BASONET - 430 sites ---------------------------------------
-
-  
-  ### b. JUST BASONET - 430 sites
-  ### N = 430 soil profiles with 1 or 2 horizons
-  
-  ### copy the soil dataframe
-  BASONET.scorpan.j <- as.data.frame(BASONET.scorpan)
-  
-  ### Columns to store cluster assignment
-  kassignments <- as.data.frame(matrix(data=NA,
-                                       nrow=nrow(BASONET.scorpan.j),
-                                       ncol = length(search_space)))
-  colnames(kassignments) <- paste0("K.",search_space)
-  knames <- paste0("K.",search_space)
-  BASONET.scorpan.j <- cbind(BASONET.scorpan.j, kassignments)
-  rm(kassignments)
-  
-  ### Now decorrelate the SCORPAN variables at the locations of the soil observations
-  ### scorpan variables corresponding to combination j
-  B.scorpan.j <- BASONET.scorpan.j[,c(fixed.columns,var.columns)]
-  ### Rescale the data
-  B.scorpan.j.rs <- as.matrix(B.scorpan.j) %*% solve(C.j)
-  
-  ### Dataframe to store output quality indices
-  
-  ### I may be better working with arrays (ncombiJ x nIndices x search_space_K). 
-  ### Dataframe to store the results of the clustering - soil data profile indicators - BASONET
-  ### These will be the results for this variable combination
-  out.indices.BASONET <- as.data.frame(matrix(data=NA, ncol=length(search_space)+1, nrow= 6))
-  colnames(out.indices.BASONET) <- c("Index",paste0("K.",search_space))
-  out.indices.BASONET$Index <- c("B_N_PdGn_sites", # Number of pedogenons with any soil observation
-                                 "B_Perc_PdGn_sites", ## What percentage of the number of classes do have observations?
-                                 "B_Min_sites", # Min number of observations per pedogenon (of those with any)
-                                 "B_Median_sites", # Median number of observations per pedogenon (of those with any)
-                                 "B_Max_sites", # Min number of observations per pedogenon (of those with any)
-                                 "B_Din_Dex" # Ratio of SOIL PROFILE intra cluster distance to between cluster distance
-                                 ### Din is average distance from each observation to the centroid of the cluster
-                                 ### Dex is the average distance between cluster centroids
-                                 )
-  
-#   ###  c. ALL DATASETS -  -----------------------------------------------
-
-  ###  c. ALL DATASETS - 
-  
-  ### copy the soil dataframe
-  Soil.df.harmonised.scorpan.j <- as.data.frame(Soil.df.harmonised.scorpan)
-  
-  ### Columns to store cluster assignment
-  kassignments <- as.data.frame(matrix(data=NA,
-                                       nrow=nrow(Soil.df.harmonised.scorpan.j),
-                                       ncol = length(search_space)))
-  colnames(kassignments) <- paste0("K.",search_space)
-  knames <- paste0("K.",search_space)
-  Soil.df.harmonised.scorpan.j <- cbind(Soil.df.harmonised.scorpan.j, kassignments)
-  rm(kassignments)
-  
-  ### Now decorrelate the SCORPAN variables at the locations of the soil observations
-  ### scorpan variables corresponding to combination j
-  SH.scorpan.j <- Soil.df.harmonised.scorpan.j[,c(fixed.columns,var.columns)]
-  ### Rescale the data
-  SH.scorpan.j.rs <- as.matrix(SH.scorpan.j) %*% solve(C.j)
-  
-  ### I may be better working with arrays (ncombiJ x nIndices x search_space_K). 
-  ### Dataframe to store the results of the clustering - soil data profile indicators - 
-  ### subset of selected properties within pedogenon: sand, silt, clay, TOC, pH, Mg, Ca, K, N
-  ### These will be the results for this variable combination
-  out.indices.SoilHarmonised <- as.data.frame(matrix(data=NA, ncol=length(search_space)+1, nrow= 6))
-  colnames(out.indices.SoilHarmonised) <- c("Index",paste0("K.",search_space))
-  out.indices.SoilHarmonised$Index <- c("SH_N_PdGn_sites", # Number of pedogenons with any soil observation
-                                        "SH_Perc_PdGn_sites", ## What percentage of the number of classes do have observations?
-                                        "SH_Min_sites", # Min number of observations per pedogenon (of those with any)
-                                        "SH_Median_sites", # Median number of observations per pedogenon (of those with any)
-                                        "SH_Max_sites", # Min number of observations per pedogenon (of those with any)
-                                        "SH_Din_Dex") # Ratio of SOIL PROFILE intra cluster distance to between cluster distance
-  ### Din is average distance from each observation to the centroid of the cluster
-  ### Dex is the average distance between cluster centroids
- 
-  setwd(paste0(OutDir,"scorpan_combi_",j,"/"))
-  gc()
-
-#   ### 4. for each k in the search space, search_space: ------------------
-
-  ### 4. for each k in the search space, search_space:
-  #k <- 30
- for( k in 1:length(search_space)){
-    
-   print(paste0("Calculating indices for k=",search_space[[k]]))
-    
-    ### Note, I can repeat this step 30 or 100 times (or as many as I want)
-    ### by changing the seed for clustering, to obtain median estimates of the clustering indices
-    
-    ### 4.a Run k-means clustering and calculate
-    set.seed(1990)
-    kmeans_clorpt.jk <- ClusterR::KMeans_rcpp(scorpanSample.j.rs, 
-                                              clusters = search_space[[k]], 
-                                              num_init = 20, 
-                                              max_iters = 10000,
-                                              fuzzy = FALSE,
-                                              initializer = 'kmeans++', 
-                                              verbose = F)
-    
-    ### 4.b total SSE, sum of within cluster SE, between-cluster SSE / total SSE
-    ### Output from function ClusterR::KMeans_rcpp
-    Tot_SSE_jk <- kmeans_clorpt.jk$total_SSE
-    sumWCSE_jk <- sum(kmeans_clorpt.jk$WCSS_per_cluster,na.rm=TRUE)   
-    Btwcse_jk <- kmeans_clorpt.jk$between.SS_DIV_total.SS
-    
-    ### 4.c Internal cluster quality indices like:
-    
-    require(clusterSim)
-    ### - Calinski-Harbasz 
-    icqG1.jk <- clusterSim::index.G1(x=scorpanSample.j.rs,
-                                     cl=kmeans_clorpt.jk$clusters, 
-                                     centrotypes="centroids")
-    
-    ### - Silhouette - This is very memory demanding, so I use a subset of the data of 20,000 observations
-    # icqS.jk <- clusterSim::index.S(d=dist(scorpanSample.j.rs), 
-    #                                cl=kmeans_clorpt.jk$clusters)
-    
-    ### - Bayesian information criterion to penalize larger number of clusters (cluster_BIC {lowmemtkmeans})
-    require(lowmemtkmeans)
-    BIC.jk <- lowmemtkmeans::cluster_BIC(data=as.matrix(scorpanSample.j.rs),
-                                         centres=as.matrix(kmeans_clorpt.jk$centroids))
-    
-    ### 4.d Store the results of the clustering indices
-    #out.clustering.indices[,k+1] <- c(Tot_SSE_jk,sumWCSE_jk,Btwcse_jk,icqG1.jk,icqS.jk,BIC.jk)
-    out.clustering.indices[,k+1] <- c(Tot_SSE_jk,sumWCSE_jk,Btwcse_jk,icqG1.jk,BIC.jk)
-    
-    # Save the k-means model and centroids
-    save(kmeans_clorpt.jk, file=paste0(OutDir,"scorpan_combi_",j,"/kmeans_scorpanID",j,".k",search_space[[k]],".RData"))
-    gc()
-    
-# ### 5. Predict cluster assignment to soil profiles BASONET--------
-
-    ### 5. Predict cluster assignment to soil properties observations - BASONET dataset:
-    
-    ### Extract the index of the dataframe rows that are na/nan/Inf
-    df.na <- which(apply(B.scorpan.j.rs, 
-                         MARGIN = 1, 
-                         FUN = function(x) {any(is.na(x))}))
-    
-    if(length(df.na) ==0) {
-      
-    ### Predict cluster assignment - BASONET
-    cluster  <- predict_KMeans(data = B.scorpan.j.rs, CENTROIDS = kmeans_clorpt.jk$centroids)
-    ### Assign to the dataframe with soil observations
-    BASONET.scorpan.j[,knames[[k]]] <- cluster
-    
-    } else if (length(df.na) > 0) {
-      
-      cluster  <- predict_KMeans(data = B.scorpan.j.rs[-df.na,], CENTROIDS = kmeans_clorpt.jk$centroids)
-      BASONET.scorpan.j[-df.na, knames[[k]]] <- cluster
-      
-    }
-    
-    ### 6. Summarise number of observations per cluster: average, min and max.
-    ### Here I only use observations from 2021, so there is no problem of double counting same coordinates and different years
-    
-    ### 6.a Subset of soil properties, those "more stable" - for BASONET, I decided (seeing also the correlation plots)
-    target.vars.BASONET <- c("Silt","Clay","CECef")
-    
-    ### Create the variable "Layer_depth"
-    BASONET.scorpan.j$Layer_depth <- ifelse(BASONET.scorpan.j$Lower_limit == 19, "000_020_cm", "020_040_cm" )
-    
-    ### subset data for the Dintra and Dinter calculations
-    Soil.df.BASONET <- BASONET.scorpan.j[,c("newID","Dataset","Layer_depth","Date", ### In this case either newID or myID design unique location
-                                            knames[[k]],
-                                            target.vars.BASONET)]
-    
-    ### Change name of pedogenon column
-    colnames(Soil.df.BASONET)[colnames(Soil.df.BASONET) ==knames[[k]]] <- "PdGn"
-    
-    ### Subset only complete observations
-    Soil.df.BASONET <- Soil.df.BASONET[complete.cases(Soil.df.BASONET),]
-    
-    ### Number of observations per pedogenon? Individual locations (unique coordinates + date)
-    ### subset only one year for BASONET and LUCAS - Done
-    summary.PdGn.BASONET <- Soil.df.BASONET[,c("newID","PdGn")] %>% distinct(.,newID,PdGn) %>% count(., PdGn)
-    
-    #out.indices.BASONET$Index 
-    #hist(summary.PdGn.BASONET$n, breaks=20)
-    ### How many of the pedogenons have any observation?
-    B_N_PdGn_sites <- length(unique(summary.PdGn.BASONET$PdGn))
-    ### What percentage does this represent from all the classes?
-    B_Perc_PdGn_sites <- round(B_N_PdGn_sites/search_space[[k]]*100, digits=1)
-    B_Min_sites <- min(summary.PdGn.BASONET$n)
-    B_Median_sites <- median(summary.PdGn.BASONET$n)
-    B_Max_sites <- max(summary.PdGn.BASONET$n)
-    
-
-# 5.b Dintra/Dinter BASONET -----------------------------------------------
-
-    
-    ### 6.b Din/Dex
-    ### Din is average distance from each observation to the centroid of its cluster
-    ### Dex is the average distance between cluster centroids
-    ### Calculate with functions from "5.PedogenonModeling_helper.R"
-    
-    BASONET.DF.intra <- Dintra.function(df.soil = Soil.df.BASONET,
-                                      uniqueID = "newID",
-                                      depth.var = "Layer_depth",
-                                      target.vars = target.vars.BASONET)
-    
-    ### Average Distance between each observation to their centroid.
-    Dintra.BASONET <- mean(BASONET.DF.intra$dist_to_centroid, na.rm=TRUE) 
-  
-    
-    BASONET.DF.inter <- Dinter.function(df.soil = Soil.df.BASONET,
-                                        uniqueID = "newID",
-                                        depth.var = "Layer_depth",
-                                        target.vars = target.vars.BASONET)
-    
-    ### Calculate average distance between centroids.
-    ### These are the distances between centroids.
-    Dinter.BASONET <- mean(BASONET.DF.inter, na.rm=TRUE)
-    
-    ### Ratio Din to Dex
-    Din_Dex_BASONET <- Dintra.BASONET/Dinter.BASONET
-    
-    ### Store the results of the soil profile distances indices
-    out.indices.BASONET[,k+1] <- c(round(B_N_PdGn_sites, digits=0),
-                                   round(B_Perc_PdGn_sites, digits=1),
-                                   round(B_Min_sites, digits=0),
-                                   round(B_Median_sites, digits=0),
-                                   round(B_Max_sites, digits=0),
-                                   round(Din_Dex_BASONET, digits=3))
-    
-    gc()
-                                  
-    
-# ### 6. Predict cluster assignment to soil profiles HARMONISED DATASET--------
-    
-    ### 6. Predict cluster assignment to soil properties observations - HARMONISED dataset:
-    
-    ### Extract the index of the dataframe rows that are na/nan/Inf
-    df.na <- which(apply(SH.scorpan.j.rs, 
-                         MARGIN = 1, 
-                         FUN = function(x) {any(is.na(x))}))
-    
-    if(length(df.na) ==0) {
-      
-      ### Predict cluster assignment - HARMONISED
-      cluster  <- predict_KMeans(data = SH.scorpan.j.rs, CENTROIDS = kmeans_clorpt.jk$centroids)
-      
-      ### Assign to the dataframe with soil observations
-      Soil.df.harmonised.scorpan.j[,knames[[k]]] <- cluster
-      
-    } else if (length(df.na) > 0) {
-      
-      cluster  <- predict_KMeans(data = SH.scorpan.j.rs[-df.na,], CENTROIDS = kmeans_clorpt.jk$centroids)
-      Soil.df.harmonised.scorpan.j[-df.na, knames[[k]]] <- cluster
-      
-    }
-    
-    ### 6. Summarise number of observations per cluster: average, min and max.
-    ### Here I only use observations from 2021, so there is no problem of double counting same coordinates and different years
-    ### and because I require soil texture, only LUCAS 2009 is taken into account
-    
-    ### 6.a Subset of soil properties, those with more observations 
-    target.vars.HARMONISED <- c("Silt","Clay","TOC","pH")
-  
-    ### subset data for the Dintra and Dinter calculations
-    Soil.df.HARMONISED <- Soil.df.harmonised.scorpan.j[,c("newID","Dataset","Layer_depth","Date",
-                                                          ### In this case either newID or myID design unique location
-                                                          knames[[k]],
-                                                          target.vars.HARMONISED)]
-    
-    ### Change name of pedogenon column
-    colnames(Soil.df.HARMONISED)[colnames(Soil.df.HARMONISED) ==knames[[k]]] <- "PdGn"
-    
-    ### Subset only complete observations
-    Soil.df.HARMONISED <- Soil.df.HARMONISED[complete.cases(Soil.df.HARMONISED),]
-    
-    ### Number of observations per pedogenon? Individual locations (unique coordinates + date)
-    ### subset only one year for BASONET and LUCAS - Done
-    summary.PdGn.HARMONISED <- Soil.df.HARMONISED[,c("newID","PdGn")] %>% distinct(.,newID,PdGn) %>% count(., PdGn)
-    
-    #out.indices.SoilHarmonised$Index 
-    #hist(summary.PdGn.BASONET$n, breaks=20)
-    ### How many of the pedogenons have any observation?
-    SH_N_PdGn_sites <- length(unique(summary.PdGn.HARMONISED$PdGn))
-    ### What percentage does this represent from all the classes?
-    SH_Perc_PdGn_sites <- round(SH_N_PdGn_sites/search_space[[k]]*100, digits=1)
-    SH_Min_sites <- min(summary.PdGn.HARMONISED$n)
-    SH_Median_sites <- median(summary.PdGn.HARMONISED$n)
-    SH_Max_sites <- max(summary.PdGn.HARMONISED$n)
-    
-    
-    # 6.b Dintra/Dinter HARMONISED -----------------------------------------------
-    
-    
-    ### 6.b Din/Dex
-    ### Din is average distance from each observation to the centroid of its cluster
-    ### Dex is the average distance between cluster centroids
-    ### Calculate with functions from "5.PedogenonModeling_helper.R"
-    
-    # centroids.test <- centroids.SoilVars.Pedogenon.fun(df.soil =Soil.df.HARMONISED,
-    #                                                    depth.var = "Layer_depth",
-    #                                                    target.vars = target.vars.HARMONISED  )
-    
-    ### DEBUG THIS FUNCTION
-    HARMONISED.DF.intra <- Dintra.function(df.soil = Soil.df.HARMONISED,
-                                        uniqueID = "newID",
-                                        depth.var = "Layer_depth",
-                                        target.vars = target.vars.HARMONISED)
-    
-    ### Average Distance between each observation to their centroid.
-    Dintra.HARMONISED <- mean(HARMONISED.DF.intra$dist_to_centroid, na.rm=TRUE) 
-    
-    
-    HARMONISED.DF.inter <- Dinter.function(df.soil = Soil.df.HARMONISED,
-                                        uniqueID = "newID",
-                                        depth.var = "Layer_depth",
-                                        target.vars = target.vars.HARMONISED)
-    
-    ### Calculate average distance between centroids.
-    ### These are the distances between centroids.
-    Dinter.HARMONISED <- mean(HARMONISED.DF.inter, na.rm=TRUE)
-    
-    ### Ratio Din to Dex
-    Din_Dex_HARMONISED <- Dintra.HARMONISED/Dinter.HARMONISED
-    
-    ### Store the results of the soil profile distances indices
-    out.indices.SoilHarmonised[,k+1] <- c(round(SH_N_PdGn_sites, digits=0),
-                                   round(SH_Perc_PdGn_sites, digits=1),
-                                   round(SH_Min_sites, digits=0),
-                                   round(SH_Median_sites, digits=0),
-                                   round(SH_Max_sites, digits=0),
-                                   round(Din_Dex_HARMONISED, digits=3))  
-    gc()
-    
-  }
-  
-  ### Now we run through all the K
-  ### Store the results in the same dataframe
-  indices.j <- rbind(out.clustering.indices,out.indices.BASONET,out.indices.SoilHarmonised)
-  
-  ### Write csv file in case foreach crashes
-  write.csv(indices.j, file = paste0(OutDir,"scorpan_combi_",j,"/cl_indices_comb",j,".csv"))
-  
-  ### Keep in a list outside the loop
-  kquality_combi_list[[j]] <- indices.j
-  
-  ### Export BASONET dataframe with cluster assignments
-  BASONET.dfs[[j]] <- BASONET.scorpan.j
-  write.csv(BASONET.scorpan.j, file = paste0(OutDir,"scorpan_combi_",j,"/BASONET_assign_",j,".csv"))
-  
-  ### Export harmonised soil dataframe with cluster assignments
-  HARMONISED.dfs[[j]] <- Soil.df.harmonised.scorpan.j
-  write.csv(Soil.df.harmonised.scorpan.j, file = paste0(OutDir,"scorpan_combi_",j,"/HARMONISED_assign_",j,".csv"))
-  
-  tmpFiles(current = FALSE, orphan = TRUE, old = TRUE, remove = TRUE)
-  gc()
-  
-  indices.j ### We return this
- 
-
-}
-
-stopCluster(cl)
-tac <- Sys.time()
-tac-tic
-
-save.image("C:/Users/mercedes.roman/Desktop/SELVANS/WP1/R_output/5.PedogenonModeling/relief_combi_preferred18032024.RData")
-
+# tac <- Sys.time()
+# tac-tic
+# 
+# save.image("C:/Users/mercedes.roman/Desktop/SELVANS/WP1/R_output/5.PedogenonModeling/relief_combi_preferred18032024.RData")
+# 
 
 
 # 8. Create HEATMAPS of cluster quality for each k and each covari --------
@@ -1061,7 +1063,7 @@ ggplot(index.table.wide[index.table.wide$B_Min_sites >= 3,],
        aes(x =scorpan_comb, y = clusters, fill = B_Min_sites)) +
   geom_tile() +
   scale_fill_viridis() +
-  labs(title = "Calinski-Harbasz index of classes with at least 3soil profiles")+
+  labs(title = "Calinski-Harbasz index of classes with at least 3 soil profiles")+
   labs(x="SCORPAN combination")+
   labs(y="Number of clusters")+
   theme(
@@ -1220,10 +1222,77 @@ colnames(index.table.wide)<- c("scorpan_comb","clusters","Calinski_Harbasz",
 index.table.wide <- index.table.wide[index.table.wide$B_Min_sites >= 3,]
 index.table.wide <- index.table.wide[index.table.wide$scorpan_comb != 38,]
 index.table.wide <- arrange(index.table.wide, desc(Calinski_Harbasz),B_Din_Dex)
+index.table.wide[1:5,]
+#     scorpan_comb clusters Calinski_Harbasz B_Min_sites B_Din_Dex
+#            <int> <chr>               <dbl>       <dbl>     <dbl>
+#   1            5 K.9                 1392.           4     1.03 
+#   2            7 K.10                1386.           4     0.886
+#   3           22 K.11                1377.           4     0.861
+#   4           13 K.11                1359.           4     0.893
+#   5            5 K.10                1358.           4     0.836
+
 write.csv(index.table.wide, file="Basonet_CH_MinO_DinDex.csv")
+
+### Checking the minimum Din/Dex
+index.table.wide <- arrange(index.table.wide, B_Din_Dex, desc(Calinski_Harbasz))
+index.table.wide[1:5,]
+#     scorpan_comb clusters Calinski_Harbasz B_Min_sites B_Din_Dex
+#            <int> <chr>               <dbl>       <dbl>     <dbl>
+#   1           32 K.8                 1184.           4     0.786
+#   2           16 K.9                 1344.           4     0.795
+#   3           29 K.8                 1184.           4     0.808
+#   4           31 K.9                 1194.           4     0.81 
+#   5           11 K.10                1350.           4     0.83 
 
 index.table.wide$clusters <- factor(index.table.wide$clusters,
                                     levels=paste0("K.",2:140))
+
+
+index.table.wide$K <- as.numeric(gsub(x=index.table.wide$clusters, pattern="K.", replacement=""))
+
+
+ggplot(index.table.wide[index.table.wide$B_Din_Dex<=0.9,],
+       aes(x = B_Din_Dex, y = Calinski_Harbasz, 
+           color=K)) +
+  geom_point(size=4) +
+  scale_color_viridis(discrete=FALSE)+
+  labs(title = "Calinski-Harbasz index and Din/Dex")+
+  theme(
+    axis.title.x = element_text(size = 16),
+    axis.text.x = element_text(size = 12),
+    axis.title.y = element_text(size = 16),
+    axis.text.y = element_text(size = 8),
+    legend.text=element_text(size=16), 
+    legend.title=element_text(size=16),
+    plot.title=element_text(size=14))+
+  geom_vline(xintercept = 0.85, linetype="dotted", 
+               color = "red", size=1.5)+
+  geom_hline(yintercept = 1150, linetype="dotted", 
+             color = "orange", size=1.5)
+
+arrange(index.table.wide[index.table.wide$B_Din_Dex<=0.85 & 
+                   index.table.wide$Calinski_Harbasz >=1150,],B_Din_Dex)
+
+
+top <- index.table.wide[index.table.wide$B_Din_Dex<=0.9,]
+top$clusters <- factor(top$clusters)
+
+ggplot(top,
+       aes(x = B_Din_Dex, y = Calinski_Harbasz, 
+           shape=clusters, color=as.factor(scorpan_comb))) +
+  geom_point(size=4) +
+  scale_shape_manual(values = c('K.8'=15, 'K.9'=18, 'K.10'=16,'K.3'=0, 'K.14'=8,'K.11'=17, 'K.13'=19)) +
+  scale_color_viridis(discrete=TRUE)+
+  labs(title = "Calinski-Harbasz index and Din/Dex")+
+  theme(
+    axis.title.x = element_text(size = 16),
+    axis.text.x = element_text(size = 12),
+    axis.title.y = element_text(size = 16),
+    axis.text.y = element_text(size = 8),
+    legend.text=element_text(size=16), 
+    legend.title=element_text(size=16),
+    plot.title=element_text(size=14))
+
 
 ggplot(index.table.wide,
        aes(x =scorpan_comb, y = clusters, fill = Calinski_Harbasz)) +
@@ -1261,7 +1330,7 @@ ggplot(index.table.wide,
        aes(x =scorpan_comb, y = clusters, fill = B_Min_sites)) +
   geom_tile() +
   scale_fill_viridis() +
-  labs(title = "Calinski-Harbasz index of classes with at least 3soil profiles")+
+  labs(title = "Calinski-Harbasz index of classes with at least 3 soil profiles")+
   labs(x="SCORPAN combination")+
   labs(y="Number of clusters")+
   theme(
@@ -1277,16 +1346,19 @@ ggplot(index.table.wide,
 install.packages("biscale")
 library(biscale)
 # create classes
+
+top <- data.s[data.s$bi_class %in% c("4-4"),]
 index.table.wide$DinDexNeg <- index.table.wide$B_Din_Dex * (-1)
-data <- bi_class(index.table.wide, x = "Calinski_Harbasz", y = "DinDexNeg", 
-                 style = "equal", dim = 4)
+
+data <- bi_class(top, x = "Calinski_Harbasz", y = "DinDexNeg", 
+                 style = "equal", dim = 3)
 data <- as.data.frame(data)
 write.csv(data, file="biscale_Basonet_equal.csv")
 
 ggplot(data,
        aes(x =scorpan_comb, y = clusters, fill = bi_class)) +
   geom_tile() +
-  bi_scale_fill(pal = "DkBlue2", dim = 4) +
+  bi_scale_fill(pal = "DkBlue2", dim = 3) +
   labs(title = "Calinski-Harbasz index and Din/Dex")+
   labs(x="SCORPAN combination")+
   labs(y="Number of clusters")+
@@ -1299,13 +1371,29 @@ ggplot(data,
     legend.title=element_text(size=16),
     plot.title=element_text(size=14))
 
+ggplot(top,
+       aes(x = B_Din_Dex, y = Calinski_Harbasz, 
+           color=as.factor(scorpan_comb), shape=clusters)) +
+  geom_point(size=4) +
+ scale_shape_manual(values = c('K.3'= 0,'K.8'=15, 'K.9'=18, 'K.10'=16,'K.11'=17,'K.12'=1, 'K.14'=8, 'K.13'=19)) +
+   # scale_color_viridis(discrete=TRUE)+
+    labs(title = "Calinski-Harbasz index and Din/Dex")+
+    theme(
+    axis.title.x = element_text(size = 16),
+    axis.text.x = element_text(size = 12),
+    axis.title.y = element_text(size = 16),
+    axis.text.y = element_text(size = 8),
+    legend.text=element_text(size=16), 
+    legend.title=element_text(size=16),
+    plot.title=element_text(size=14))
+
 # sample 4x4 legend
 legend <- bi_legend(pal = "DkBlue2",
-                    dim = 4,
+                    dim = 3,
                     xlab = "Calinski-Harbasz",
                     ylab = "- Din/Dex",
                     size = 16)
-bi_pal(pal, dim = 3, preview = TRUE, flip_axes = FALSE, rotate_pal = FALSE)
+bi_pal(pal="DkBlue2", dim = 4, preview = TRUE, flip_axes = FALSE, rotate_pal = FALSE)
 
 ### the combination that:
 ### - has at least 3 observations per pedogenon class
@@ -1313,6 +1401,11 @@ bi_pal(pal, dim = 3, preview = TRUE, flip_axes = FALSE, rotate_pal = FALSE)
 ### - has a large Calinski-Harbasz index
 data <- arrange(data, B_Din_Dex)
 data[1:20,]
+data.s <- data[data$bi_class %in% c("3-4","4-3","4-4","3-3"),]
+data.s[data.s$bi_class %in% c("4-4"),]
+
+data <- arrange(data, B_Din_Dex)
+data[data$bi_class %in% c("3-3"),]
 
 ### Now with the harmonised dataset
 index.table <- table_indices[table_indices$Index %in% 
@@ -1424,8 +1517,23 @@ data[1:20,]
 
 ### I am searching for the combination that:
 ### - has at least 3 observations per pedogenon class
-### - has the smallest Din/Dex with BASONET and the complete dataset
-### - has a large Calinski-Harbasz index
+### - has the smallest Din/Dex with BASONET and the complete dataset, din/Dex < 0.85
+### - has a large Calinski-Harbasz index > 1150
+
+arrange(index.table.wide[index.table.wide$B_Din_Dex<=0.85 & 
+                           index.table.wide$Calinski_Harbasz >=1150,],B_Din_Dex)
+# # A tibble: 8 × 7
+# scorpan_comb clusters Calinski_Harbasz B_Min_sites B_Din_Dex DinDexNeg     K
+# <int> <fct>               <dbl>       <dbl>     <dbl>     <dbl> <dbl>
+#   1           32 K.8                 1184.           4     0.786    -0.786     8
+# 2           16 K.9                 1344.           4     0.795    -0.795     9
+# 3           29 K.8                 1184.           4     0.808    -0.808     8
+# 4           31 K.9                 1194.           4     0.81     -0.81      9
+# 5           11 K.10                1350.           4     0.83     -0.83     10
+# 6            5 K.10                1358.           4     0.836    -0.836    10
+# 7           20 K.11                1322.           3     0.843    -0.843    11
+# 8            4 K.9                 1253.           4     0.847    -0.847     9
+
 
 ### Now both datasets
 index.table <- table_indices[table_indices$Index %in% 
@@ -1446,17 +1554,17 @@ colnames(index.table.wide)<- c("scorpan_comb","clusters","Calinski_Harbasz",
 ### At least 3 onservations per pedogenon class
 index.table.wide <- index.table.wide[index.table.wide$B_Min_sites >= 3,]
 index.table.wide <- index.table.wide[index.table.wide$scorpan_comb != 38,] ### This one has a weird result 
-### The Din/Dex smaller than 1 (at least the same dispersion, no more!)
-index.table.wide <- index.table.wide[index.table.wide$B_Din_Dex <=1,]
+### The Din/Dex smaller than 0.85 (at least the same dispersion, no more!)
+index.table.wide <- index.table.wide[index.table.wide$B_Din_Dex <=0.85,]
 ### Arrange
 index.table.wide <- arrange(index.table.wide, B_Din_Dex, desc(Calinski_Harbasz))
 ### write.csv(index.table.wide, file="SH_CH_MinObs_DinDex.csv")
-
 index.table.wide$clusters <- factor(index.table.wide$clusters,
                                     levels=paste0("K.",2:140))
+index.table.wide$clusters <- factor(index.table.wide$clusters)
 index.table.wide <- arrange(index.table.wide, B_Din_Dex, desc(Calinski_Harbasz))
 
-relief.combi.df[c(16,32),]
+relief.combi.df[sort(unique(index.table.wide$scorpan_comb)),]
 
 ggplot(index.table.wide,
        aes(x =scorpan_comb, y = clusters, fill = SH_Din_Dex)) +
@@ -1473,7 +1581,6 @@ ggplot(index.table.wide,
     legend.text=element_text(size=16), 
     legend.title=element_text(size=16),
     plot.title=element_text(size=20))
-
 
 # create classes
 index.table.wide$DinDexNeg <- index.table.wide$B_Din_Dex * (-1)
@@ -1509,168 +1616,17 @@ data[data$bi_class =="4-4",]
 # 5           22 K.11                1377.           4     0.861            6       1.20    -0.861 4-4     
 # 6            7 K.12                1334.           4     0.864            6       1.18    -0.864 4-4   
 
+arrange(index.table.wide,scorpan_comb)
+
 
 # ### 10. Map pedogenon classes -------------------------------------------
 
-### Number of variables per soil-forming factor:
-
-### Climate = 5 variables selected from correlation plots 
-### and variable importance for predicting soil properties
-setwd("C:/Users/mercedes.roman/Desktop/SELVANS/WP1/R_output/4.CovariateSelection/scaled/")
-clim.vars <- c("clim_bio1.tif","clim_bio4.tif","clim_bio5.tif","clim_bio12.tif","clim_bio15.tif")
-clim.r <- rast(clim.vars)
-plot(clim.r)
-
-### Relief: between 5 to 10 - These will be selected with iterations
-setwd("C:/Users/mercedes.roman/Desktop/SELVANS/WP1/R_output/4.CovariateSelection/scaled/")
-relief.fixed <- c("relief_dem.tif")
-
-### Option combi 16
-relief.combi16 <- c("relief_slope.tif", # slope
-                    "relief_twi.tif", # TWI 
-                    "relief_valley_depth.tif",
-                    "relief_st_height.tif") # Preferred hydrological variables
-relief.r <- rast(c(relief.fixed, relief.combi16))
-names(relief.r) <- paste0("r_",names(relief.r))
-
-### Vegetation: 4 or 5 PCs of MVG PCA scores (54-66 % variance)
-setwd("C:/Covariates/Euskadi/Organisms/")
-vegetation.vars <- c("MVG_PC1.tif","MVG_PC2.tif","MVG_PC3.tif","MVG_PC4.tif","MVG_PC5.tif")
-vegetation.r <- rast(vegetation.vars)
-names(vegetation.r) <- paste0("o_",names(vegetation.r))
-
-### Parent material: 8 or 50 % of variance
-setwd("C:/Users/mercedes.roman/Desktop/SELVANS/WP1/R_output/1.CovariatesEus/")
-parentmaterial.vars <- c("pm_mca_1.tif","pm_mca_2.tif","pm_mca_3.tif",
-                         "pm_mca_4.tif","pm_mca_5.tif","pm_mca_6.tif",
-                         "pm_mca_7.tif","pm_mca_8.tif")
-parentmaterial.r <- rast(parentmaterial.vars)
-
-### All variables
-scorpan <- c(clim.r, vegetation.r, relief.r, parentmaterial.r)
-
-### Take sample
-### Regular sample
-set.seed(2233)
-scorpanSample <- terra::spatSample(x = scorpan, 
-                                   size=200000,
-                                   method="regular", 
-                                   as.df=TRUE, 
-                                   xy=TRUE)
-
-### complete cases
-scorpanSample <- scorpanSample[complete.cases(scorpanSample),]
-
-## Take out the coordinates
-CLORPT.df.coords <- scorpanSample[,1:2]
-CLORPT.df <- scorpanSample[,3:ncol(scorpanSample)]
-
-### Perform Cholesky transformation to decorrelate the data
-# The basic Euclidean distance treats each variable as equally important in calculating the distance.
-# An alternative approach is to scale the contribution of individual variables to the distance value according
-# to the variability of each variable. This approach is illustrated by the Mahalanobis distance, 
-# which is a measure of the distance between each observation in a multidimensional cloud of points and
-# the centroid of the cloud.
-### Calculate the Mahalanobis distance, as Euclidean distance after applying the Cholesky decomposition
-
-# # Rescale the data
-C <- chol(var(as.matrix(CLORPT.df)))
-CLORPT.rs <- as.matrix(CLORPT.df) %*% solve(C)
-
-# perform KMeans_rcpp clustering with the selected number of clusters
+library(dendsort)
+library(dendextend)
+library(terra)
 library(ClusterR)
 
-my_seed <- 4587 ### 
-myk <- 9
-pedogenons.eus.comb16.k9 <-KMeans_rcpp(data=CLORPT.rs, 
-                                  clusters=myk,
-                                  num_init = 20, 
-                                  max_iters = 20000,
-                                  initializer = "kmeans++",
-                                  fuzzy = FALSE, 
-                                  verbose = TRUE,
-                                  seed = my_seed)
-
-#  Mapping the clusters and write layers
-### Previously, the stack with the scaled covariates were at
-scorpan
-plot(scorpan)
-
-### Extract the index of the centroids that are na/nan/Inf
-Kcent.nan <- which(apply(pedogenons.eus.comb16.k9[["centroids"]], MARGIN = 1, FUN = function(y){any(is.na(y))}))
-### None are NA
-
-### Define the size of the blocks --- At each raster row do we start and finish each crop?
-bs <- blocks(scorpan)
-### I crop all raster files (across variables stacks) in a parallel process
-### with a %dopar% from the foreach package
-### this is thought for a large study area, but of course for the example is not needed
-
-## My desired cluster number
-K <- 9
-
-k_rast_list <- list()
-
-for(i in 1:bs$n){
-  
-  ### Get one tile of the raster stack
-  # tile <- crop(covariates.stack, 
-  #                ext(covariates.stack, bs$row[[i]], bs$row[[i]]+bs$nrows[[i]], 1, ncol(covariates.stack)))
-  ### Crop with this syntax from https://stackoverflow.com/questions/69965770/subset-a-raster-using-row-column-index-in-terra 
-  if(i < bs$n)  {
-    tile <- scorpan[ bs$row[[i]]:(bs$row[[i]]+bs$nrows[[i]]), 1:ncol(scorpan), drop=FALSE]
-  }  else {
-    tile <- scorpan[ bs$row[[i]]:(bs$row[[i]]+bs$nrows[[i]]-5), 1:ncol(scorpan), drop=FALSE]
-  }
-  
-  ### Transform into a dataframe
-  tile.df <- as.data.frame(tile, row.names=NULL, optional=FALSE, xy=TRUE, na.rm=FALSE)
-  
-  ### For each new pixel, I first have to rescale its values
-  ## Take out the coordinates
-  tile.df.coords <- tile.df[,1:2]
-  tile.df <- tile.df[,3:ncol(tile.df)]
-  
-  # Rescale the data with CLORPT.df (sample from the stack covariates that was used to calibrate the kmeans in the first place)
-  tile.df.rs <- as.matrix(tile.df) %*% solve(C)
-  tile.df.rs <- as.data.frame(tile.df.rs)
-  
-  ### Predict cluster assignment
-  
-  ### Extract the index of the dataframe rows that are na/nan/Inf
-  df.na <- which(apply(tile.df.rs, MARGIN = 1, FUN = function(x) {any(is.na(x))}))
-  
-  ### Create empty prediction column
-  tile.df.rs$cluster <- NA
-  
-  ### If K is more than one instead of km.pedogenon.rcpp being a kmeans model, it would be a list of models
-  ### km.pedogenon.rcpp[[m]]$centroids
-  ### predict in those rows where there are not na
-  tile.df.rs[-df.na, ]$cluster  <- predict_KMeans(data = tile.df.rs[-df.na,1:(ncol(tile.df.rs)-1)], 
-                                                  CENTROIDS = pedogenons.eus.comb16.k9$centroids)
-  ### Assign the values to a new raster
-  k.pred <- setValues(tile[[1]], tile.df.rs$cluster)
-  names(k.pred) <- "PdGn"
-  k_rast_list[[i]] <- k.pred # Return this
-}
-
-#stopCluster(cl)
-## Assign function to mosaic
-k_sprc <- sprc(k_rast_list)
-## Create mosaic for whole France
-k.raster <- terra::mosaic(k_sprc, 
-                          fun="min", 
-                          overwrite=TRUE, 
-                          filename="C:/Users/mercedes.roman/Desktop/SELVANS/WP1/R_output/5.PedogenonModeling/PdGnCmb16K9.tif")
-plot(k.raster)
-k.raster <- terra::rast("C:/Users/mercedes.roman/Desktop/SELVANS/WP1/R_output/5.PedogenonModeling/PdGnCmb16K9.tif")
-plot(k.raster)
-
-setwd("C:/Users/mercedes.roman/Desktop/SELVANS/WP1/R_output/5.PedogenonModeling/")
-
-
-### Play with map output
-
+### auxiliary functions for the outputs
 ### Area of pedogenon classes
 pedogenon.area.func <- function(kmap, fname) {
   
@@ -1692,7 +1648,6 @@ pedogenon.area.func <- function(kmap, fname) {
   return(k.area.df) ## and return
 }
 
-PdGn.area <- pedogenon.area.func(kmap=k.raster, fname="PdGnAreaCmb16K9")
 
 ### Returns a table with a row per Pedogenon indicating the closer Pedogenon class,
 ### the Mahalanobis distance between Pedogenons calculated with CLORPT covariates,
@@ -1768,10 +1723,6 @@ centroid.dist.func <- function(kmodel, k.area.df, fname){
   return(as.data.frame(outs)) ## and return
 }
 
-closetPdGn_k9Cmb16 <- centroid.dist.func(kmodel = pedogenons.eus.comb16.k9,
-                   k.area.df = PdGn.area,
-                   fname = "closetPdGn_k9Cmb16")
-
 
 ### First, perform the hierarchical clustering and save it to plot
 ### Input: kmodel - kmeans model from the package ClusterR
@@ -1797,7 +1748,6 @@ viz.map.legend.hclust <- function(kmodel) {
   
 }
 
-hclust_PdGnk9_Cmb16 <- viz.map.legend.hclust(pedogenons.eus.comb16.k9)
 
 ### function to choose the number of branches for color ramps
 ### Input:
@@ -1809,9 +1759,6 @@ viz.branches <- function(hc.object, branchN) {
     plot(., main = paste0("Colored ",branchN," branches"))
 }
 
-viz.branches(hclust_PdGnk9_Cmb16,9)
-
-
 ### Choose my color palette manually:
 hcl_palettes(plot = TRUE)
 
@@ -1821,14 +1768,14 @@ mypalette <- c(sequential_hcl("PurpOr", n = 5),
                sequential_hcl("RdPu", n = 5),
                sequential_hcl("GnBu", n = 5),
                sequential_hcl("OrYel", n = 5)
-               )
+)
 
 plot(1:30, 1:30, pch=19, cex=3, col=mypalette)
 mypalette <- mypalette[c(2,4,6,8,12,18,22,26,28)]
-mypalette <- c("#9D50A6","#177F97", "#2EC6AF","#0090BA","#A74F5A","#EF4868", "#F39B4C","cornsilk3", "#EDAA7D")
+mypalette <- c("#9D50A6","goldenrod","#177F97","#EF4868",
+               "#F39B4C", "#0090BA", "darkkhaki","#A74F5A",
+               "cornsilk3","#ED70A9","#2EC6AF", "#EDAA7D")
 
-library(dendsort)
-library(dendextend)
 
 viz.map.legend.pal <- function(kmodel, ### k-means model from ClusterR
                                manual, mypalette, ### If manual, provide the color palette (will not know to which class they are assigned)
@@ -1921,7 +1868,7 @@ viz.map.legend.pal <- function(kmodel, ### k-means model from ClusterR
   
   pdf(file = paste0("Map_legend",legend.name,".pdf"), width = 10, height = 5 )
   plot(legend.plot,
-      # main = "Soil districts",
+       # main = "Soil districts",
        horiz = FALSE) # change color 
   dev.off()
   
@@ -1970,14 +1917,14 @@ viz.map.legend.pal <- function(kmodel, ### k-means model from ClusterR
                 options = scaleBarOptions(metric=TRUE,
                                           maxWidth=200))
   # %>%
-    #fitBounds(lng1=140, lat1=-38, lng2=154, lat2=-28) %>%
-    #leafem::addMouseCoordinates() %>%
-    # addLayersControl(
-    #   baseGroups = c("OSM (default)"),
-    #   overlayGroups = c("soil districts"),
-    #   options = layersControlOptions(collapsed = FALSE)
-    # )
-    # 
+  #fitBounds(lng1=140, lat1=-38, lng2=154, lat2=-28) %>%
+  #leafem::addMouseCoordinates() %>%
+  # addLayersControl(
+  #   baseGroups = c("OSM (default)"),
+  #   overlayGroups = c("soil districts"),
+  #   options = layersControlOptions(collapsed = FALSE)
+  # )
+  # 
   #mapshot(map.out, file = paste0(OutDir,"/Map_",legend.name,".pdf"), remove_url = FALSE)
   output <- list("hc"=hc, "branch.centroids.ord"=branch.centroids.ord,
                  "legend.plot"=legend.plot, "map.out"=map.out)
@@ -1986,12 +1933,270 @@ viz.map.legend.pal <- function(kmodel, ### k-means model from ClusterR
 }
 
 
-map.PdGn.Comb26.k9 <- viz.map.legend.pal(kmodel = pedogenons.eus.comb16.k9,
-                                         manual = "yes",
-                                         mypalette = mypalette,
-                                         legend.name = "SoilDistrictsCmb16K9",
-                                         kmap = k.raster,need.proj = TRUE)
+### Number of variables per soil-forming factor:
 
+### Climate = 5 variables selected from correlation plots 
+### and variable importance for predicting soil properties
+setwd("C:/Users/mercedes.roman/Desktop/SELVANS/WP1/R_output/4.CovariateSelection/scaled/")
+clim.vars <- c("clim_bio1.tif","clim_bio4.tif","clim_bio5.tif","clim_bio12.tif","clim_bio15.tif")
+clim.r <- rast(clim.vars)
+plot(clim.r)
+
+### Relief: between 5 to 10 - These will be selected with iterations
+setwd("C:/Users/mercedes.roman/Desktop/SELVANS/WP1/R_output/4.CovariateSelection/scaled/")
+relief.fixed <- c("relief_dem.tif")
+
+### We already did the combination 16 and k=9 in a different script
+### Here we prepare for all 8 preferred combinations
+relief.combi.df[sort(unique(index.table.wide$scorpan_comb)),]
+
+relief.combi4 <- c("relief_slope.tif", # slope
+                   "relief_northerness.tif", # northeness
+                    "relief_twi.tif", # TWI 
+                    "relief_valley_depth.tif")
+
+relief.combi5 <- c("relief_slope.tif", # slope
+                   "relief_northerness.tif", # northeness
+                   "relief_twi.tif", # TWI 
+                   "relief_st_height.tif")
+
+relief.combi11 <- c("relief_slope.tif", # slope
+                   "relief_easterness.tif", # northeness
+                   "relief_twi.tif", # TWI 
+                   "relief_st_height.tif")
+
+relief.combi16 <- c("relief_slope.tif", # slope
+                    "relief_twi.tif", # TWI 
+                    "relief_valley_depth.tif",
+                    "relief_st_height.tif") # Preferred hydrological variables
+
+relief.combi20 <- c("relief_northerness.tif", # slope
+                    "relief_twi.tif", # TWI 
+                    "relief_valley_depth.tif",
+                    "relief_st_height.tif") 
+
+relief.combi29 <- c("relief_slope.tif", # slope
+                    "relief_northerness.tif", # northerness
+                    "relief_twi.tif", # TWI 
+                    "relief_valley_depth.tif",
+                    "relief_st_height.tif") 
+
+relief.combi31 <- c("relief_slope.tif", # slope
+                    "relief_easterness.tif", # 
+                    "relief_north_slope.tif",
+                    "relief_twi.tif", # TWI 
+                    "relief_st_height.tif") 
+
+relief.combi32 <- c("relief_slope.tif", # slope
+                    "relief_easterness.tif", # 
+                    "relief_north_slope.tif",
+                    "relief_valley_depth.tif",
+                    "relief_st_height.tif") 
+
+relief.r4 <- rast(c(relief.fixed, relief.combi4))
+relief.r5 <- rast(c(relief.fixed, relief.combi5))
+relief.r11 <- rast(c(relief.fixed, relief.combi11))
+relief.r16 <- rast(c(relief.fixed, relief.combi16))
+relief.r20 <- rast(c(relief.fixed, relief.combi20))
+relief.r29 <- rast(c(relief.fixed, relief.combi29))
+relief.r31 <- rast(c(relief.fixed, relief.combi31))
+relief.r32 <- rast(c(relief.fixed, relief.combi32))
+
+names(relief.r4) <- paste0("r_",names(relief.r4))
+names(relief.r5) <- paste0("r_",names(relief.r5))
+names(relief.r11) <- paste0("r_",names(relief.r11))
+names(relief.r16) <- paste0("r_",names(relief.r16))
+names(relief.r20) <- paste0("r_",names(relief.r20))
+names(relief.r29) <- paste0("r_",names(relief.r29))
+names(relief.r31) <- paste0("r_",names(relief.r31))
+names(relief.r32) <- paste0("r_",names(relief.r32))
+
+### Vegetation: 4 or 5 PCs of MVG PCA scores (54-66 % variance)
+setwd("C:/Covariates/Euskadi/Organisms/")
+vegetation.vars <- c("MVG_PC1.tif","MVG_PC2.tif","MVG_PC3.tif","MVG_PC4.tif","MVG_PC5.tif")
+vegetation.r <- rast(vegetation.vars)
+names(vegetation.r) <- paste0("o_",names(vegetation.r))
+
+### Parent material: 8 or 50 % of variance
+setwd("C:/Users/mercedes.roman/Desktop/SELVANS/WP1/R_output/1.CovariatesEus/")
+parentmaterial.vars <- c("pm_mca_1.tif","pm_mca_2.tif","pm_mca_3.tif",
+                         "pm_mca_4.tif","pm_mca_5.tif","pm_mca_6.tif",
+                         "pm_mca_7.tif","pm_mca_8.tif")
+parentmaterial.r <- rast(parentmaterial.vars)
+
+### All variables, make list of raster stacks
+scorpan4 <- c(clim.r, vegetation.r, relief.r4, parentmaterial.r)
+scorpan5 <- c(clim.r, vegetation.r, relief.r5, parentmaterial.r)
+scorpan11 <- c(clim.r, vegetation.r, relief.r11, parentmaterial.r)
+scorpan16 <- c(clim.r, vegetation.r, relief.r16, parentmaterial.r)
+scorpan20 <- c(clim.r, vegetation.r, relief.r20, parentmaterial.r)
+scorpan29 <- c(clim.r, vegetation.r, relief.r29, parentmaterial.r)
+scorpan31 <- c(clim.r, vegetation.r, relief.r31, parentmaterial.r)
+scorpan32 <- c(clim.r, vegetation.r, relief.r32, parentmaterial.r)
+
+## list of different stacks
+scorpan.s <- list(scorpan4,scorpan5,scorpan11,scorpan16,scorpan20,scorpan29,scorpan31,scorpan32)
+outdir <- "C:/Users/mercedes.roman/Desktop/SELVANS/WP1/R_output/5.PedogenonModeling/SoilDistrictMaps/"
+setwd(outdir)
+
+### Load the models
+### list of models
+models <- c("C:/Users/mercedes.roman/Desktop/SELVANS/WP1/R_output/5.PedogenonModeling/scorpan_combi_4/kmeans_scorpanID4.k9.RData",
+            "C:/Users/mercedes.roman/Desktop/SELVANS/WP1/R_output/5.PedogenonModeling/scorpan_combi_5/kmeans_scorpanID5.k10.RData",
+            "C:/Users/mercedes.roman/Desktop/SELVANS/WP1/R_output/5.PedogenonModeling/scorpan_combi_11/kmeans_scorpanID11.k10.RData",
+            "C:/Users/mercedes.roman/Desktop/SELVANS/WP1/R_output/5.PedogenonModeling/scorpan_combi_16/kmeans_scorpanID16.k9.RData",
+            "C:/Users/mercedes.roman/Desktop/SELVANS/WP1/R_output/5.PedogenonModeling/scorpan_combi_20/kmeans_scorpanID20.k11.RData",
+            "C:/Users/mercedes.roman/Desktop/SELVANS/WP1/R_output/5.PedogenonModeling/scorpan_combi_29/kmeans_scorpanID29.k8.RData",
+            "C:/Users/mercedes.roman/Desktop/SELVANS/WP1/R_output/5.PedogenonModeling/scorpan_combi_31/kmeans_scorpanID31.k9.RData",
+            "C:/Users/mercedes.roman/Desktop/SELVANS/WP1/R_output/5.PedogenonModeling/scorpan_combi_32/kmeans_scorpanID32.k8.RData")
+
+myK <- c(9,10,10,9,11,8,9,8)
+
+namesout <- c("PdGnCmb4K9", "PdGnCmb5K10", "PdGnCmb11K10","PdGnCmb16K9",
+              "PdGnCmb20K11", "PdGnCmb29K8","PdGnCmb31K9", "PdGnCmb32K8")
+
+viz.Map.output <- list()
+
+### Make the 8 maps
+for(m in 1:length(models)) {
+  
+  print(m)
+  
+  #tmpFiles(current=FALSE, orphan=TRUE, old=TRUE, remove=TRUE)
+  gc()
+  
+  scorpan <-scorpan.s[[m]]
+  
+  ### In this case I will not compute new clusters and combinations... 
+  ### I will just use the model that was produced in the previous analysis
+  ### 1 Take sample
+  ### Regular sample
+  set.seed(2233)
+  scorpanSample <- terra::spatSample(x = scorpan,
+                                     size=50000,
+                                     method="regular",
+                                     as.df=TRUE,
+                                     xy=TRUE)
+  ### Only complete cases
+  scorpanSample <- scorpanSample[complete.cases(scorpanSample),]
+  dim(scorpanSample)
+ 
+  ## Take out the coordinates
+  CLORPT.df.coords <- scorpanSample[,1:2]
+  CLORPT.df <- scorpanSample[,3:ncol(scorpanSample)]
+  
+  ### Perform Cholesky transformation to decorrelate the data
+  # The basic Euclidean distance treats each variable as equally important in calculating the distance.
+  # An alternative approach is to scale the contribution of individual variables to the distance value according
+  # to the variability of each variable. This approach is illustrated by the Mahalanobis distance, 
+  # which is a measure of the distance between each observation in a multidimensional cloud of points and
+  # the centroid of the cloud.
+  ### Calculate the Mahalanobis distance, as Euclidean distance after applying the Cholesky decomposition
+  
+  # # Rescale the data
+  C <- chol(var(as.matrix(CLORPT.df)))
+  
+  ### Load the k-means model
+  load(models[[m]]) ### kmeans_clorpt.jk generic name
+  
+  ### Extract the index of the centroids that are na/nan/Inf
+  Kcent.nan <- which(apply(kmeans_clorpt.jk[["centroids"]], MARGIN = 1, FUN = function(y){any(is.na(y))}))
+  ### None are NA
+  
+  ### Define the size of the blocks --- At each raster row do we start and finish each crop?
+  bs <- blocks(scorpan)
+  ### I crop all raster files (across variables stacks) in a parallel process
+  ### with a %dopar% from the foreach package
+  ### this is thought for a large study area, but of course for the example is not needed
+  
+  k_rast_list <- list()
+  
+  for(i in 1:bs$n){
+    
+    ### Get one tile of the raster stack
+    # tile <- crop(covariates.stack, 
+    #                ext(covariates.stack, bs$row[[i]], bs$row[[i]]+bs$nrows[[i]], 1, ncol(covariates.stack)))
+    ### Crop with this syntax from https://stackoverflow.com/questions/69965770/subset-a-raster-using-row-column-index-in-terra 
+    if(i < bs$n)  {
+      tile <- scorpan[ bs$row[[i]]:(bs$row[[i]]+bs$nrows[[i]]), 1:ncol(scorpan), drop=FALSE]
+    }  else {
+      tile <- scorpan[ bs$row[[i]]:(bs$row[[i]]+bs$nrows[[i]]-5), 1:ncol(scorpan), drop=FALSE]
+    }
+    
+    ### Transform into a dataframe
+    tile.df <- as.data.frame(tile, row.names=NULL, optional=FALSE, xy=TRUE, na.rm=FALSE)
+    
+    ### For each new pixel, I first have to rescale its values
+    ## Take out the coordinates
+    tile.df.coords <- tile.df[,1:2]
+    tile.df <- tile.df[,3:ncol(tile.df)]
+    
+    # Rescale the data with CLORPT.df (sample from the stack covariates that was used to calibrate the kmeans in the first place)
+    tile.df.rs <- as.matrix(tile.df) %*% solve(C)
+    tile.df.rs <- as.data.frame(tile.df.rs)
+    
+    ### Predict cluster assignment
+    
+    ### Extract the index of the dataframe rows that are na/nan/Inf
+    df.na <- which(apply(tile.df.rs, MARGIN = 1, FUN = function(x) {any(is.na(x))}))
+    
+    ### Create empty prediction column
+    tile.df.rs$cluster <- NA
+    
+    ### If K is more than one instead of km.pedogenon.rcpp being a kmeans model, it would be a list of models
+    ### km.pedogenon.rcpp[[m]]$centroids
+    ### predict in those rows where there are not na
+    tile.df.rs[-df.na, ]$cluster  <- predict_KMeans(data = tile.df.rs[-df.na,1:(ncol(tile.df.rs)-1)], 
+                                                    CENTROIDS = kmeans_clorpt.jk$centroids)
+    ### Assign the values to a new raster
+    k.pred <- setValues(tile[[1]], tile.df.rs$cluster)
+    names(k.pred) <- "PdGn"
+    k_rast_list[[i]] <- k.pred # Return this
+  }
+  
+  setwd(outdir)
+  
+  #stopCluster(cl)
+  ## Assign function to mosaic
+  k_sprc <- sprc(k_rast_list)
+  ## Create mosaic for whole France
+  k.raster <- terra::mosaic(k_sprc, 
+                            fun="min", 
+                            overwrite=TRUE, 
+                            filename=paste0(outdir,namesout[[m]],".tif"))
+  plot(k.raster)
+  k.raster <- terra::rast(paste0(outdir,namesout[[m]],".tif"))
+  plot(k.raster)
+  
+  ### do the rest of analyses that we need
+  #kmeans_clorpt.jk
+  
+  library(dendsort)
+  library(dendextend)
+  library(colorspace)
+  
+  ### Calculate area of each class
+  PdGn.area <- pedogenon.area.func(kmap=k.raster, fname=namesout[[m]])
+  
+  hclust_PdGn <- viz.map.legend.hclust(kmeans_clorpt.jk)
+
+  ### Make maps
+  map.PdGn.Comb.M <- viz.map.legend.pal(kmodel = kmeans_clorpt.jk,
+                                           manual = "yes",
+                                           mypalette = mypalette[1:myK[[m]]],
+                                           legend.name = namesout[[m]],
+                                           kmap = k.raster,need.proj = TRUE)
+  
+  viz.Map.output[[m]] <- map.PdGn.Comb.M
+  
+  }
+
+
+save.image("C:/Users/mercedes.roman/Desktop/SELVANS/WP1/R_output/5.PedogenonModeling/SoilDistrictMaps/PedogenonMapping19042024.RData")
+### HERE today 18/04/2024
+
+
+# ## 10. Assess maps ----------------------------------------------------------
 
 ### 10. Assign soil health indicators (soil condition indications) to each pedogenon class and plot values
 ### TOC, TOC:clay, EC, pH, bulk density, N, Mg, K, Ca, etc.
